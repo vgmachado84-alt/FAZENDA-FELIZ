@@ -73,9 +73,17 @@ drawSprite('pen',1105,640,470,300);
 if(Date.now()<tractorUntil){let q=(Date.now()-(tractorUntil-4500))/4500;drawSprite('tractor',500+q*420,565,155,145)}else drawSprite('tractor',360,790,125,110);
 ctx.restore();}
 const SZ={cow:125,pig:100,sheep:95,chicken:58,dog:78};
+function pickTarget(a){if(a.type==='dog'){let[b0,b1,b2,b3]=bounds(a);a.tx=b0+Math.random()*(b1-b0);a.ty=b2+Math.random()*(b3-b2);return}for(let n=0;n<30;n++){let x=PEN.x+(Math.random()*2-1)*PEN.a,y=PEN.y+(Math.random()*2-1)*PEN.b;if(inPen(x,y)&&animals.every(o=>o===a||Math.hypot(o.tx-x,(o.ty-y)*1.8)>90)){a.tx=x;a.ty=y;return}}a.tx=PEN.x;a.ty=PEN.y}
 function bounds(a){return a.type==='dog'?[925,1005,575,640]:[1000,1210,440,575]}
-const PEN={x:1110,y:488,a:140,b:60};function inPen(x,y){return Math.abs(x-PEN.x)/PEN.a+Math.abs(y-PEN.y)/PEN.b<=1}
-function tick(ts){let dt=Math.min((ts-last)/1000,.05)||0;last=ts;animals.forEach(a=>{if(a.pause>0){a.pause-=dt;return}if(Math.random()<dt*.25){a.pause=1+Math.random()*2.5;a.dx=(Math.random()-.5)*2;a.dy=(Math.random()-.5)*1.2;return}let sp=a.type==='chicken'?34:26;let nx=a.x+a.dx*dt*sp,ny=a.y+a.dy*dt*sp;if(a.type!=='dog'&&!inPen(nx,ny)){a.dx=(PEN.x-a.x)/150+(Math.random()-.5)*.6;a.dy=(PEN.y-a.y)/72*.6+(Math.random()-.5)*.3;if(!inPen(a.x,a.y)){a.x+=(PEN.x-a.x)*.05;a.y+=(PEN.y-a.y)*.05}return}a.x=nx;a.y=ny;let[b0,b1,b2,b3]=bounds(a);if(a.x<b0||a.x>b1){a.dx*=-1;a.x=Math.max(b0,Math.min(b1,a.x))}if(a.y<b2||a.y>b3){a.dy*=-1;a.y=Math.max(b2,Math.min(b3,a.y))}});worldDraw(ts);requestAnimationFrame(tick)}
+const PEN={x:1105,y:495,a:150,b:66};function inPen(x,y){return Math.abs(x-PEN.x)/PEN.a+Math.abs(y-PEN.y)/PEN.b<=1}
+function tick(ts){let dt=Math.min((ts-last)/1000,.05)||0;last=ts;animals.forEach((a,k)=>{
+ if(a.tx===undefined||a.home===undefined){a.home=k;pickTarget(a)}
+ if(a.type!=='dog'&&!inPen(a.x,a.y)){a.x+=(PEN.x-a.x)*.08;a.y+=(PEN.y-a.y)*.08}
+ if(a.pause>0){a.pause-=dt}else{
+  let dx=a.tx-a.x,dy=a.ty-a.y,d=Math.hypot(dx,dy),sp=a.type==='chicken'?38:26;
+  if(d<4){a.pause=1.2+Math.random()*3;pickTarget(a)}else{a.x+=dx/d*sp*dt;a.y+=dy/d*sp*dt;a.dx=dx/d;a.dy=dy/d}}
+ animals.forEach(b=>{if(b===a||b.type==='dog'||a.type==='dog')return;let ex=a.x-b.x,ey=(a.y-b.y)*1.8,dd=Math.hypot(ex,ey),min=((SZ[a.type]||80)+(SZ[b.type]||80))*.42;
+  if(dd>0.1&&dd<min){let push=(min-dd)*dt*3;a.x+=ex/dd*push;a.y+=ey/dd*push*.55}})});worldDraw(ts);requestAnimationFrame(tick)}
 function updateHud(){document.getElementById('coins').textContent=coins;document.getElementById('energy').textContent=energy;document.getElementById('xp').textContent=xp;document.getElementById('level').textContent=level}
 function gainXP(n){xp+=n;while(xp>=level*100){xp-=level*100;level++;coins+=50;toast('Subiu para o nível '+level+'! +50 moedas')}updateHud();save()}
 function toast(s){let e=document.getElementById('toast');e.textContent=s;e.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>e.style.opacity=0,1900)}
