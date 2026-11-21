@@ -11,8 +11,8 @@ android {
         applicationId = "com.fazendafeliz"
         minSdk = 23
         targetSdk = 35
-        versionCode = 11
-        versionName = "2.4"
+        versionCode = 12
+        versionName = "2.5"
     }
 
     signingConfigs {

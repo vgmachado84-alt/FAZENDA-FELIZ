@@ -41,7 +41,7 @@ function buildField(old){fieldN=fieldSize(land);let np=[];for(let i=0;i<fieldN;i
 function cellCenter(i,j){let ty=FY-fieldN*HY;return{x:FX+(i-j)*HX,y:ty+(i+j+1)*HY}}
 function cellAt(x,y){let u=(x-FX)/HX,v=(y-(FY-fieldN*HY))/HY,i=Math.floor((v+u)/2),j=Math.floor((v-u)/2);if(i<0||j<0||i>=fieldN||j>=fieldN)return null;return plots[i*fieldN+j]}
 buildField();
-let animals=[{type:'cow',x:1060,y:520,dx:1,dy:0.2,product:'Leite'},{type:'pig',x:1150,y:530,dx:-.6,dy:.5,product:''},{type:'sheep',x:1120,y:470,dx:.3,dy:-.7,product:'Lã'},{type:'chicken',x:1090,y:545,dx:.8,dy:-.3,product:'Ovos'},{type:'dog',x:960,y:610,dx:-.5,dy:-.2,product:''}];
+let animals=[{type:'cow',x:1015,y:488,dx:1,dy:0.2,product:'Leite'},{type:'pig',x:1110,y:532,dx:-.6,dy:.5,product:''},{type:'sheep',x:1195,y:488,dx:.3,dy:-.7,product:'Lã'},{type:'chicken',x:1110,y:455,dx:.8,dy:-.3,product:'Ovos'},{type:'dog',x:960,y:610,dx:-.5,dy:-.2,product:''}];
 function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??'';energyTs=s.energyTs??Date.now()}}catch(e){}}
 let energyTs=Date.now();
 function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify({coins,energy,xp,level,land,plots,animalProducts,dailyStamp,energyTs}))}
@@ -72,8 +72,11 @@ drawSprite('pen',1105,640,470,300);
 [...animals].sort((p,q)=>p.y-q.y).forEach(a=>{let im=img[a.type];if(!im?.complete||!im.naturalWidth)return;let w=SZ[a.type]||80,h=w*im.naturalHeight/im.naturalWidth;ctx.save();ctx.translate(a.x,a.y);ctx.fillStyle='rgba(60,35,10,.25)';ctx.beginPath();ctx.ellipse(0,-3,w*.36,w*.1,0,0,7);ctx.fill();let step=a.pause>0?0:Math.abs(Math.sin(t/140+a.x))*-4;ctx.rotate(a.pause>0?0:Math.sin(t/140+a.x)*.04);ctx.scale(a.dx<0?-1:1,1);ctx.drawImage(im,-w/2,-h+step,w,h);ctx.restore()});
 if(Date.now()<tractorUntil){let q=(Date.now()-(tractorUntil-4500))/4500;drawSprite('tractor',500+q*420,565,155,145)}else drawSprite('tractor',360,790,125,110);
 ctx.restore();}
-const SZ={cow:125,pig:100,sheep:95,chicken:58,dog:78};
-function pickTarget(a){if(a.type==='dog'){let[b0,b1,b2,b3]=bounds(a);a.tx=b0+Math.random()*(b1-b0);a.ty=b2+Math.random()*(b3-b2);return}for(let n=0;n<30;n++){let x=PEN.x+(Math.random()*2-1)*PEN.a,y=PEN.y+(Math.random()*2-1)*PEN.b;if(inPen(x,y)&&animals.every(o=>o===a||Math.hypot(o.tx-x,(o.ty-y)*1.8)>90)){a.tx=x;a.ty=y;return}}a.tx=PEN.x;a.ty=PEN.y}
+const SZ={cow:100,pig:80,sheep:78,chicken:48,dog:72};
+const ZONES={cow:[1015,488],sheep:[1195,488],pig:[1110,532],chicken:[1110,455]};
+function pickTarget(a){if(a.type==='dog'){let[b0,b1,b2,b3]=bounds(a);a.tx=b0+Math.random()*(b1-b0);a.ty=b2+Math.random()*(b3-b2);return}
+ let z=ZONES[a.type];if(!z){let k=animals.indexOf(a)%4;z=Object.values(ZONES)[k]}
+ for(let n=0;n<20;n++){let x=z[0]+(Math.random()*2-1)*32,y=z[1]+(Math.random()*2-1)*12;if(inPen(x,y)){a.tx=x;a.ty=y;return}}a.tx=z[0];a.ty=z[1]}
 function bounds(a){return a.type==='dog'?[925,1005,575,640]:[1000,1210,440,575]}
 const PEN={x:1105,y:495,a:150,b:66};function inPen(x,y){return Math.abs(x-PEN.x)/PEN.a+Math.abs(y-PEN.y)/PEN.b<=1}
 function tick(ts){let dt=Math.min((ts-last)/1000,.05)||0;last=ts;animals.forEach((a,k)=>{
