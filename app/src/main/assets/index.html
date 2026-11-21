@@ -48,7 +48,7 @@ function cellAt(x,y){for(const F of fields()){let u=(x-F.x)/HX,v=(y-(F.y-F.n*HY)
 function zoneAt(x,y){return ZONES.find(z=>!zonesOwned.includes(z.id)&&Math.abs(x-z.x)/(z.n*HX)+Math.abs(y-z.y)/(z.n*HY)<=1)}
 buildField();
 let animals=[{type:'cow',x:0,y:0,start:1,dx:1,dy:0.2,product:'Leite'},{type:'pig',x:0,y:0,start:1,dx:-.6,dy:.5,product:''},{type:'sheep',x:0,y:0,start:1,dx:.3,dy:-.7,product:'Lã'},{type:'chicken',x:0,y:0,start:1,dx:.8,dy:-.3,product:'Ovos'},{type:'dog',x:960,y:610,dx:-.5,dy:-.2,product:''}];
-function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;zonesOwned=s.zonesOwned||[];applyLayout(s.lay);buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??'';energyTs=s.energyTs??Date.now()}}catch(e){}}
+function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;zonesOwned=s.zonesOwned||[];applyLayout(s.lay);buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??'';tractorUntil=0;energyTs=s.energyTs??Date.now()}}catch(e){}}
 let energyTs=Date.now();
 function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify({coins,energy,xp,level,land,zonesOwned,lay:layout(),plots,animalProducts,dailyStamp,energyTs}))}
 function regen(){let n=Math.floor((Date.now()-energyTs)/60000);if(n>0){if(energy<30)energy=Math.min(30,energy+n);energyTs+=n*60000;updateHud()}if(energy>=30)energyTs=Date.now()}
@@ -93,15 +93,15 @@ if(land>1)drawSprite('apple_tree',410,470,150,170);
  plots.forEach(p=>{if(p.f!==F.id)return;let a=p.i,b=p.j,dry=!p.crop;poly([P(a+.06,b+.06),P(a+.94,b+.06),P(a+.94,b+.94),P(a+.06,b+.94)],dry?'#8f5c30':'#6e4322');
   ctx.strokeStyle='rgba(60,32,12,.45)';ctx.lineWidth=2;for(let r=1;r<4;r++){let q1=P(a+.12,b+r*.25),q2=P(a+.88,b+r*.25);ctx.beginPath();ctx.moveTo(q1[0],q1[1]);ctx.lineTo(q2[0],q2[1]);ctx.stroke()}});
  ctx.strokeStyle='#c98a4a';ctx.lineWidth=5;ctx.beginPath();[P(0,0),P(n,0),P(n,n),P(0,n)].forEach((q,k)=>k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.stroke()});
- [...plots].sort((p,q)=>p.y-q.y).forEach(p=>{if(!p.crop)return;let f=(Date.now()-p.planted)/Math.max(1,p.readyAt-p.planted);let st=f>=1?3:f>=.45?2:1;p.stage=st;let sz=st===1?.6:st===2?.8:1;
+ let trDone=!TR;const trDraw=()=>{if(!trDone){drawTractorAt(TR.x,TR.y,90,80,TR.face);trDone=true}};[...plots].sort((p,q)=>p.y-q.y).forEach(p=>{if(!trDone&&TR.y<p.y+6)trDraw();if(!p.crop)return;let f=(Date.now()-p.planted)/Math.max(1,p.readyAt-p.planted);let st=f>=1?3:f>=.45?2:1;p.stage=st;let sz=st===1?.6:st===2?.8:1;
   let im=img[p.crop+'_'+st];if(im&&im.naturalWidth){let w=72*sz,h=w*im.naturalHeight/im.naturalWidth;let bob=st===3?Math.sin(t/300+p.id)*1.5:0;ctx.drawImage(im,p.x-w/2,p.y+12-h+bob,w,h)}
   if(st===3){ctx.save();ctx.globalAlpha=.5+.4*Math.sin(t/220+p.id);ctx.fillStyle='#fff7b0';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.fillText('✦',p.x+16,p.y-28);ctx.restore()}
   else{let bw=38;ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(p.x-bw/2,p.y+14,bw,5);ctx.fillStyle='#ffd34d';ctx.fillRect(p.x-bw/2,p.y+14,bw*Math.min(1,f),5)}});
- floaters=floaters.filter(fl=>(fl.t+=0.016)<1.2);floaters.forEach(fl=>{ctx.save();ctx.globalAlpha=1-fl.t/1.2;ctx.font='900 20px sans-serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='#fff';ctx.fillStyle=fl.neg?'#b3261e':'#2e7d32';ctx.strokeText(fl.txt,fl.x,fl.y-fl.t*40);ctx.fillText(fl.txt,fl.x,fl.y-fl.t*40);ctx.restore()})}
+ trDraw();floaters=floaters.filter(fl=>(fl.t+=0.016)<1.2);floaters.forEach(fl=>{ctx.save();ctx.globalAlpha=1-fl.t/1.2;ctx.font='900 20px sans-serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='#fff';ctx.fillStyle=fl.neg?'#b3261e':'#2e7d32';ctx.strokeText(fl.txt,fl.x,fl.y-fl.t*40);ctx.fillText(fl.txt,fl.x,fl.y-fl.t*40);ctx.restore()})}
 // Pen and wandering animals; animals turn in their travel direction.
 if(moving&&moving.kind==='field')drawFoot(moving);drawPens(t);
 [...animals].sort((p,q)=>p.y-q.y).forEach(a=>{let im=img[a.type];if(!im?.complete||!im.naturalWidth)return;let w=SZ[a.type]||80,h=w*im.naturalHeight/im.naturalWidth;ctx.save();ctx.translate(a.x,a.y);ctx.fillStyle='rgba(60,35,10,.25)';ctx.beginPath();ctx.ellipse(0,-3,w*.36,w*.1,0,0,7);ctx.fill();let step=a.pause>0?0:Math.abs(Math.sin(t/140+a.x))*-4;ctx.rotate(a.pause>0?0:Math.sin(t/140+a.x)*.04);ctx.scale(a.dx<0?-1:1,1);ctx.drawImage(im,-w/2,-h+step,w,h);ctx.restore()});
-{let T=OBJ.tractor;if(Date.now()<tractorUntil){let q=(Date.now()-(tractorUntil-4500))/4500,s2=Math.sin(q*Math.PI);drawSprite('tractor',T.x+(FX-T.x)*s2,T.y+(FY-T.y)*s2,T.w*1.1,T.h*1.1)}else{drawSprite('tractor',T.x,T.y,T.w,T.h);if(moving&&moving.o===T)drawFoot(moving)}}
+{let T=OBJ.tractor;if(TR){}else{drawSprite('tractor',T.x,T.y,T.w,T.h);if(moving&&moving.o===T)drawFoot(moving)}}
 drawBubbles(t);ctx.restore();}
 const SZ={cow:100,pig:80,sheep:78,chicken:48,dog:72};
 function pickTarget(a){if(a.type==='dog'){let[b0,b1,b2,b3]=bounds(a);a.tx=b0+Math.random()*(b1-b0);a.ty=b2+Math.random()*(b3-b2);return}
@@ -122,7 +122,7 @@ function drawPens(t){for(const k in PENS){const P=PENS[k],q=pin(P);
  if(k==='cow'){let[cx,cy]=B(-.22,.64);drawSprite('crate',cx,cy,46,42)}
  if(k==='sheep'){let[bx,by]=B(.22,.66);drawSprite('barrel',bx,by,26,34)}
  if(moving&&moving.o===P)drawFoot(moving);if(scale>.3){ctx.save();ctx.font='bold 15px sans-serif';ctx.textAlign='center';let tw=ctx.measureText(P.nome).width+18,lx=P.x,ly=P.y+20;ctx.fillStyle='rgba(90,52,16,.88)';ctx.beginPath();ctx.roundRect(lx-tw/2,ly-18,tw,24,12);ctx.fill();ctx.fillStyle='#fff3c4';ctx.fillText(P.nome,lx,ly-1);ctx.restore()}}}
-function tick(ts){let dt=Math.min((ts-last)/1000,.05)||0;last=ts;animals.forEach((a,k)=>{
+function tick(ts){let dt=Math.min((ts-last)/1000,.05)||0;last=ts;stepTractor(dt);animals.forEach((a,k)=>{
  if(a.start){let q=walkArea(penOf(a));a.x=q.x+(Math.random()-.5)*q.a;a.y=q.y+(Math.random()-.5)*q.b;a.start=0}if(a.tx===undefined||a.home===undefined){a.home=k;pickTarget(a)}
  if(a.type!=='dog'&&!inPenOf(a,a.x,a.y)){let q=walkArea(penOf(a));a.x+=(q.x-a.x)*.15;a.y+=(q.y-a.y)*.15}
  if(a.pause>0){a.pause-=dt}else{
@@ -136,7 +136,7 @@ function toast(s){let e=document.getElementById('toast');e.textContent=s;e.style
 function choosePlant(c){selectedCrop=c;document.querySelectorAll('.action').forEach(x=>x.classList.remove('selected'));document.getElementById('plantBtn').classList.add('selected');toast('Semente selecionada: '+({wheat:'trigo',corn:'milho',carrot:'cenoura',strawberry:'morango',lettuce:'alface'}[c]))}
 function plantAt(p,quiet){if(p.crop&&Date.now()>=p.readyAt){let value={wheat:18,corn:24,carrot:30,strawberry:38,lettuce:32}[p.crop];coins+=value;energy=Math.min(30,energy+1);gainXP(12);p.crop=null;floaters.push({x:p.x,y:p.y-30,txt:'+'+value,t:0});if(!quiet)toast('Colheita realizada! +'+value+' moedas');updateHud();save();return}if(p.crop){if(!quiet)toast('A plantação ainda está crescendo');return}if(energy<1){toast('Sem energia. Aguarde ou receba o presente diário.');return}let cost={wheat:3,corn:5,carrot:6,strawberry:8,lettuce:7}[selectedCrop];if(coins<cost){toast('Moedas insuficientes');return}coins-=cost;floaters.push({x:p.x,y:p.y-30,txt:'-'+cost,t:0,neg:1});energy--;p.crop=selectedCrop;p.planted=Date.now();p.readyAt=Date.now()+({wheat:35000,corn:50000,carrot:60000,strawberry:75000,lettuce:65000}[selectedCrop]);p.stage=1;updateHud();save();if(!quiet)toast('Semente plantada! Dica: arraste o dedo pela plantação para plantar vários.');}
 let floaters=[];
-const PROD={cow:{n:'Leite',e:'🥛',t:180,r:28,nome:'A vaca'},sheep:{n:'Lã',e:'🧶',t:240,r:32,nome:'A ovelha'},chicken:{n:'Ovos',e:'🥚',t:90,r:18,nome:'A galinha'},pig:{n:'Trufas',e:'🍄',t:300,r:40,nome:'O porco'}};
+const PROD={cow:{n:'Leite',e:'🥛',t:180,r:28,nome:'A vaca'},sheep:{n:'Lã',e:'🧶',t:240,r:32,nome:'A ovelha'},chicken:{n:'Ovos',e:'🥚',t:90,r:18,nome:'A galinha'},pig:{n:'Bacon',e:'🥓',t:300,r:40,nome:'O porco'}};
 function prodReady(k){let v=animalProducts[k]||0;return v<1e12||Date.now()>=v}
 function prodLeft(k){return Math.max(0,Math.ceil(((animalProducts[k]||0)-Date.now())/1000))}
 function collectAnimal(a){let key=a.type,P=PROD[key];if(!P){toast('O cachorro está feliz! 🐶');gainXP(2);return}
@@ -199,7 +199,16 @@ function clampCam(){let ww=WX1-WX0,wh=WY1-WY0;if(ww*scale<=viewW)camX=WX0+(ww-vi
 function zoomBy(f){let cx=camX+viewW/scale/2,cy=camY+viewH/scale/2;scale=Math.max(minS,Math.min(2.2,scale*f));camX=cx-viewW/scale/2;camY=cy-viewH/scale/2;clampCam()}
 function zoomReset(){resize()}
 canvas.addEventListener('pointerup',e=>{let p=pointers.get(e.pointerId);if(pointers.size===1&&drag&&!drag.moved){let w=toWorld(e.clientX,e.clientY);if(!hit(w.x,w.y)){} }pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;if(pointers.size===0)drag=null});canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);drag=null;pinch=null});
-function useTractor(){let ready=plots.filter(p=>p.crop&&Date.now()>=p.readyAt);if(!ready.length){toast('Ainda não há plantações prontas');return}if(energy<2){toast('O trator precisa de 2 energias');return}energy-=2;tractorUntil=Date.now()+4500;setTimeout(()=>{ready.forEach(p=>{coins+=({wheat:18,corn:24,carrot:30,strawberry:38,lettuce:32}[p.crop]);p.crop=null;gainXP(10)});updateHud();save();toast('Trator colheu '+ready.length+' canteiro(s)!')},4500);updateHud();save()}
+let TR=null;const CROPV={wheat:18,corn:24,carrot:30,strawberry:38,lettuce:32};
+function useTractor(){if(TR){toast('O trator já está trabalhando');return}let ready=plots.filter(p=>p.crop&&Date.now()>=p.readyAt);if(!ready.length){toast('Ainda não há plantações prontas');return}if(energy<2){toast('O trator precisa de 2 energias');return}energy-=2;updateHud();
+ ready.sort((a,b)=>(a.f>b.f?1:a.f<b.f?-1:0)||(a.i-b.i)||((a.i%2?-1:1)*(a.j-b.j)));
+ let T=OBJ.tractor,path=ready.map(p=>({x:p.x,y:p.y+6,p}));path.push({x:T.x,y:T.y,home:1});TR={x:T.x,y:T.y,path,k:0,n:0,face:1};tractorUntil=Date.now()+600000;save()}
+function stepTractor(dt){if(!TR)return;let g=TR.path[TR.k],dx=g.x-TR.x,dy=g.y-TR.y,d=Math.hypot(dx,dy),sp=g.home?260:150;
+ if(Math.abs(dx)>1)TR.face=dx<0?-1:1;
+ if(d<=sp*dt){TR.x=g.x;TR.y=g.y;if(g.p&&g.p.crop){let v=CROPV[g.p.crop]||20;coins+=v;floaters.push({x:g.p.x,y:g.p.y-30,txt:'+'+v,t:0});g.p.crop=null;TR.n++;gainXP(10);updateHud();if(window.SND)SND.play('coin')}
+  TR.k++;if(TR.k>=TR.path.length){toast('🚜 Trator colheu '+TR.n+' canteiro'+(TR.n>1?'s':'')+'!');TR=null;tractorUntil=0;save()}}
+ else{TR.x+=dx/d*sp*dt;TR.y+=dy/d*sp*dt}}
+function drawTractorAt(x,y,w,h,face){let im=img.tractor;if(!im||!im.naturalWidth)return;ctx.save();ctx.translate(x,y);ctx.scale(face,1);ctx.translate(0,Math.sin(performance.now()/60)*1.2);ctx.drawImage(im,-w/2,-h,w,h);ctx.restore()}
 function openPanel(title,body){let p=document.getElementById('panel');p.innerHTML='<button class="close" onclick="closePanels()">×</button><h2>'+title+'</h2>'+body;p.style.display='block'}function closePanels(){document.getElementById('panel').style.display='none'}
 function openShop(){let crops=[['wheat','Trigo',3],['corn','Milho',5],['carrot','Cenoura',6],['strawberry','Morango',8],['lettuce','Alface',7]];let html=`<p>Escolha uma semente para plantar. O tempo de crescimento é curto nesta versão de demonstração.</p><div class="shopgrid">${crops.map(([k,n,c])=>`<div class="shopitem"><img src="images/${k}_3.png"><strong>${n}</strong><span>${c} moedas</span><br><button onclick="buySeed('${k}')">Selecionar</button></div>`).join('')}</div><hr><div class="shopgrid"><div class="shopitem"><img src="images/cow.png"><strong>Vaca</strong><button onclick="buyAnimal('cow')">Comprar 120</button></div><div class="shopitem"><img src="images/chicken.png"><strong>Galinha</strong><button onclick="buyAnimal('chicken')">Comprar 65</button></div></div>`;openPanel('Loja da fazenda',html)}
 function buySeed(k){choosePlant(k);closePanels()}function buyAnimal(k){let c=k==='cow'?120:65;if(coins<c){toast('Moedas insuficientes');return}coins-=c;animals.push({type:k,x:0,y:0,start:1,dx:Math.random()>.5?1:-1,dy:.4,product:k==='cow'?'Leite':'Ovos'});animalProducts[k]=animalProducts[k]||0;updateHud();save();toast('Animal comprado!');closePanels()}
