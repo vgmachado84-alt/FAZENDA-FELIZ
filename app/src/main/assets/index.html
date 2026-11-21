@@ -82,7 +82,7 @@ function drawSprite(key,x,y,w,h){let im=img[key];if(im&&im.complete&&im.naturalW
 function worldDraw(t){ctx.clearRect(0,0,viewW,viewH);ctx.save();ctx.scale(scale,scale);ctx.translate(-camX,-camY);
 drawOuter(t,0);if(img.map?.complete)ctx.drawImage(img.map,0,0,W,H);drawOuter(t,1);
 // Buildings are separate PNG objects layered over the illustrated terrain.
-Object.values(OBJ).filter(o=>o.k!=='tractor').sort((a,b)=>a.y-b.y).forEach(o=>{drawSprite(o.k,o.x,o.y,o.w,o.h);if(moving&&moving.o===o)ring(o.x,o.y,o.w)});
+Object.values(OBJ).filter(o=>o.k!=='tractor').sort((a,b)=>a.y-b.y).forEach(o=>{drawSprite(o.k,o.x,o.y,o.w,o.h);if(moving&&moving.o===o)drawFoot(moving)});
 // Extra farm details
 if(land>1)drawSprite('apple_tree',410,470,150,170);
 // Garden plots and crop stages
@@ -99,16 +99,16 @@ if(land>1)drawSprite('apple_tree',410,470,150,170);
   else{let bw=38;ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(p.x-bw/2,p.y+14,bw,5);ctx.fillStyle='#ffd34d';ctx.fillRect(p.x-bw/2,p.y+14,bw*Math.min(1,f),5)}});
  floaters=floaters.filter(fl=>(fl.t+=0.016)<1.2);floaters.forEach(fl=>{ctx.save();ctx.globalAlpha=1-fl.t/1.2;ctx.font='900 20px sans-serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='#fff';ctx.fillStyle=fl.neg?'#b3261e':'#2e7d32';ctx.strokeText(fl.txt,fl.x,fl.y-fl.t*40);ctx.fillText(fl.txt,fl.x,fl.y-fl.t*40);ctx.restore()})}
 // Pen and wandering animals; animals turn in their travel direction.
-drawPens(t);
+if(moving&&moving.kind==='field')drawFoot(moving);drawPens(t);
 [...animals].sort((p,q)=>p.y-q.y).forEach(a=>{let im=img[a.type];if(!im?.complete||!im.naturalWidth)return;let w=SZ[a.type]||80,h=w*im.naturalHeight/im.naturalWidth;ctx.save();ctx.translate(a.x,a.y);ctx.fillStyle='rgba(60,35,10,.25)';ctx.beginPath();ctx.ellipse(0,-3,w*.36,w*.1,0,0,7);ctx.fill();let step=a.pause>0?0:Math.abs(Math.sin(t/140+a.x))*-4;ctx.rotate(a.pause>0?0:Math.sin(t/140+a.x)*.04);ctx.scale(a.dx<0?-1:1,1);ctx.drawImage(im,-w/2,-h+step,w,h);ctx.restore()});
-{let T=OBJ.tractor;if(Date.now()<tractorUntil){let q=(Date.now()-(tractorUntil-4500))/4500,s2=Math.sin(q*Math.PI);drawSprite('tractor',T.x+(FX-T.x)*s2,T.y+(FY-T.y)*s2,T.w*1.1,T.h*1.1)}else{drawSprite('tractor',T.x,T.y,T.w,T.h);if(moving&&moving.o===T)ring(T.x,T.y,T.w)}}
+{let T=OBJ.tractor;if(Date.now()<tractorUntil){let q=(Date.now()-(tractorUntil-4500))/4500,s2=Math.sin(q*Math.PI);drawSprite('tractor',T.x+(FX-T.x)*s2,T.y+(FY-T.y)*s2,T.w*1.1,T.h*1.1)}else{drawSprite('tractor',T.x,T.y,T.w,T.h);if(moving&&moving.o===T)drawFoot(moving)}}
 drawBubbles(t);ctx.restore();}
 const SZ={cow:100,pig:80,sheep:78,chicken:48,dog:72};
 function pickTarget(a){if(a.type==='dog'){let[b0,b1,b2,b3]=bounds(a);a.tx=b0+Math.random()*(b1-b0);a.ty=b2+Math.random()*(b3-b2);return}
  let q=walkArea(penOf(a));for(let n=0;n<30;n++){let x=q.x+(Math.random()*2-1)*q.a*.9,y=q.y+(Math.random()*2-1)*q.b*.9;
   if(inPenOf(a,x,y)&&animals.every(o=>o===a||penOf(o)!==penOf(a)||o.tx===undefined||Math.hypot(o.tx-x,(o.ty-y)*1.8)>70)){a.tx=x;a.ty=y;return}}a.tx=q.x;a.ty=q.y}
 function bounds(a){return a.type==='dog'?[925,1005,575,640]:[1000,1210,440,575]}
-const PENS={cow:{x:1105,y:640,w:430,h:275,nome:'Curral'},sheep:{x:485,y:700,w:280,h:178,nome:'Ovelhas'},pig:{x:1330,y:1010,w:290,h:185,nome:'Chiqueiro'},chicken:{x:640,y:455,w:250,h:160,nome:'Galinheiro'}};
+const PENS={cow:{x:1105,y:640,w:430,h:275,nome:'Curral'},sheep:{x:485,y:700,w:280,h:178,nome:'Ovelhas'},pig:{x:1330,y:1010,w:290,h:185,nome:'Chiqueiro'},chicken:{x:630,y:435,w:250,h:160,nome:'Galinheiro'}};
 function penOf(a){return PENS[a.type]||PENS.cow}
 function pin(P){return{x:P.x,y:P.y-P.h*.48,a:P.w*.30,b:P.h*.2}}
 function walkArea(P){return{x:P.x,y:P.y-P.h*.56,a:P.w*.2,b:P.h*.1}}
@@ -121,7 +121,7 @@ function drawPens(t){for(const k in PENS){const P=PENS[k],q=pin(P);
  if(k==='chicken'){let[sx,sy]=B(.1,.58);ctx.fillStyle='#e8cf7a';ctx.beginPath();ctx.ellipse(sx,sy,P.w*.12,P.h*.06,0,0,7);ctx.fill();let[cx,cy]=B(-.2,.6);ctx.save();ctx.filter='sepia(.85) saturate(1.3) hue-rotate(-12deg) brightness(1.05)';drawSprite('barn',cx,cy,74,70);ctx.restore()}
  if(k==='cow'){let[cx,cy]=B(-.22,.64);drawSprite('crate',cx,cy,46,42)}
  if(k==='sheep'){let[bx,by]=B(.22,.66);drawSprite('barrel',bx,by,26,34)}
- if(moving&&moving.o===P)ring(P.x,P.y-P.h*.3,P.w*.8);if(scale>.3){ctx.save();ctx.font='bold 15px sans-serif';ctx.textAlign='center';let tw=ctx.measureText(P.nome).width+18,lx=P.x,ly=P.y+20;ctx.fillStyle='rgba(90,52,16,.88)';ctx.beginPath();ctx.roundRect(lx-tw/2,ly-18,tw,24,12);ctx.fill();ctx.fillStyle='#fff3c4';ctx.fillText(P.nome,lx,ly-1);ctx.restore()}}}
+ if(moving&&moving.o===P)drawFoot(moving);if(scale>.3){ctx.save();ctx.font='bold 15px sans-serif';ctx.textAlign='center';let tw=ctx.measureText(P.nome).width+18,lx=P.x,ly=P.y+20;ctx.fillStyle='rgba(90,52,16,.88)';ctx.beginPath();ctx.roundRect(lx-tw/2,ly-18,tw,24,12);ctx.fill();ctx.fillStyle='#fff3c4';ctx.fillText(P.nome,lx,ly-1);ctx.restore()}}}
 function tick(ts){let dt=Math.min((ts-last)/1000,.05)||0;last=ts;animals.forEach((a,k)=>{
  if(a.start){let q=walkArea(penOf(a));a.x=q.x+(Math.random()-.5)*q.a;a.y=q.y+(Math.random()-.5)*q.b;a.start=0}if(a.tx===undefined||a.home===undefined){a.home=k;pickTarget(a)}
  if(a.type!=='dog'&&!inPenOf(a,a.x,a.y)){let q=walkArea(penOf(a));a.x+=(q.x-a.x)*.15;a.y+=(q.y-a.y)*.15}
@@ -149,11 +149,32 @@ function drawBubbles(t){animals.forEach(a=>{let P=PROD[a.type];if(!P||!prodReady
  let T=OBJ.tractor,n=plots.filter(p=>p.crop&&Date.now()>=p.readyAt).length;if(n&&Date.now()>=tractorUntil){let bob=Math.sin(t/220)*4,x=T.x,y=T.y-T.h-14+bob;ctx.save();ctx.fillStyle='#4caf50';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x-34,y-17,68,32,16);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='900 16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🌾 '+n,x,y);ctx.restore()}}
 function hit(x,y){let c=cellAt(x,y);if(c){plantAt(c);return true}let zz=zoneAt(x,y);if(zz){askZone(zz);return true}{let T=OBJ.tractor;if(Math.abs(x-T.x)<T.w*.5&&y<T.y+8&&y>T.y-T.h){useTractor();return true}}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
 let pointers=new Map(),drag=null,pinch=null,minS=.3;
-const OBJ={house:{k:'house',x:280,y:430,w:270,h:270,nome:'Casa'},barn:{k:'barn',x:1210,y:360,w:250,h:230,nome:'Celeiro'},silo:{k:'silo',x:1370,y:310,w:100,h:220,nome:'Silo'},windmill:{k:'windmill',x:1450,y:520,w:170,h:260,nome:'Moinho'},well:{k:'well',x:330,y:610,w:115,h:160,nome:'Poço'},market:{k:'market',x:220,y:610,w:180,h:175,nome:'Feira'},tractor:{k:'tractor',x:610,y:845,w:125,h:110,nome:'Trator'}};
+const OBJ={house:{k:'house',x:280,y:430,w:270,h:270,nome:'Casa'},barn:{k:'barn',x:1210,y:360,w:250,h:230,nome:'Celeiro'},silo:{k:'silo',x:1370,y:310,w:100,h:220,nome:'Silo'},windmill:{k:'windmill',x:1450,y:520,w:170,h:260,nome:'Moinho'},well:{k:'well',x:350,y:618,w:115,h:160,nome:'Poço'},market:{k:'market',x:220,y:610,w:180,h:175,nome:'Feira'},tractor:{k:'tractor',x:610,y:845,w:125,h:110,nome:'Trator'}};
 let moving=null;
+/* ocupação do chão: cada coisa tem um losango; nada pode encostar no outro */
+function fpOf(kind,o){let r,cx,cy;
+ if(kind==='obj'){r=o.w*.4;cx=o.x;cy=o.y-r*HY/HX*.9}
+ else if(kind==='pen'){r=o.w*.46;cx=o.x;cy=o.y-r*HY/HX-o.h*.04}
+ else{r=o.n*HX;cx=o.x;cy=o.y-o.n*HY}
+ return{u:(cx/HX+cy/HY)/2,v:(cy/HY-cx/HX)/2,a:r/(2*HX),cx,cy,r}}
+function allItems(){let L=[];for(const k in OBJ)L.push({kind:'obj',key:'o'+k,o:OBJ[k]});for(const k in PENS)L.push({kind:'pen',key:'p'+k,o:PENS[k]});
+ fields().forEach(F=>L.push({kind:'field',key:'f'+F.id,o:F.id==='main'?{x:FX,y:FY,n:fieldN}:F}));return L}
+function overlaps(item){let A=fpOf(item.kind,item.o);return allItems().some(b=>{if(b.key===item.key)return false;let B=fpOf(b.kind,b.o),m=(A.a+B.a)*.94;return Math.abs(A.u-B.u)<m&&Math.abs(A.v-B.v)<m})}
+function keyOf(m){if(m.kind==='field')return'fmain';for(const k in OBJ)if(OBJ[k]===m.o)return'o'+k;for(const k in PENS)if(PENS[k]===m.o)return'p'+k;return''}
+function itemOf(m){return{kind:m.kind,key:keyOf(m),o:m.kind==='field'?{x:FX,y:FY,n:fieldN}:m.o}}
+function drawFoot(m){let F=fpOf(m.kind,itemOf(m).o),ok=!overlaps(itemOf(m)),hw=F.r,hh=F.r*HY/HX;
+ ctx.save();ctx.fillStyle=ok?'rgba(60,200,80,.45)':'rgba(230,50,40,.5)';ctx.strokeStyle=ok?'#2e9e3a':'#c62828';ctx.lineWidth=4;
+ ctx.beginPath();ctx.moveTo(F.cx,F.cy-hh);ctx.lineTo(F.cx+hw,F.cy);ctx.lineTo(F.cx,F.cy+hh);ctx.lineTo(F.cx-hw,F.cy);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore()}
+const DEF={};
+function fixOverlaps(){let changed=false;for(const it of allItems()){if(it.kind==='field'&&it.key!=='fmain')continue;if(!overlaps(it))continue;
+  let d=DEF[it.key];if(!d)continue;let ox=it.kind==='field'?FX:it.o.x,oy=it.kind==='field'?FY:it.o.y;
+  if(it.kind==='field'){FX=d[0];FY=d[1];buildField(plots)}else{let dx=d[0]-it.o.x,dy=d[1]-it.o.y;moveBy({kind:it.kind,o:it.o},dx,dy)}
+  if(overlaps(it.kind==='field'?{kind:'field',key:'fmain',o:{x:FX,y:FY,n:fieldN}}:it)){if(it.kind==='field'){FX=ox;FY=oy;buildField(plots)}else moveBy({kind:it.kind,o:it.o},ox-it.o.x,oy-it.o.y)}else changed=true}
+ return changed}
+
 function ring(x,y,w){ctx.save();ctx.strokeStyle='#ffe066';ctx.lineWidth=5;ctx.setLineDash([10,8]);ctx.beginPath();ctx.ellipse(x,y-4,w*.5,w*.2,0,0,7);ctx.stroke();ctx.restore()}
 function layout(){let o={};for(const k in OBJ)o[k]=[OBJ[k].x,OBJ[k].y];let p={};for(const k in PENS)p[k]=[PENS[k].x,PENS[k].y];return{o,p,f:[FX,FY]}}
-function applyLayout(L){if(!L)return;if(L.o&&L.o.tractor&&L.o.tractor[0]===470&&L.o.tractor[1]===880)delete L.o.tractor;for(const k in L.o||{})if(OBJ[k]){OBJ[k].x=L.o[k][0];OBJ[k].y=L.o[k][1]}for(const k in L.p||{})if(PENS[k]){PENS[k].x=L.p[k][0];PENS[k].y=L.p[k][1]}if(L.f){FX=L.f[0];FY=L.f[1]}}
+function applyLayout(L){if(!DEF.done){for(const k in OBJ)DEF['o'+k]=[OBJ[k].x,OBJ[k].y];for(const k in PENS)DEF['p'+k]=[PENS[k].x,PENS[k].y];DEF.fmain=[FX,FY];DEF.done=1}if(!L)return;if(L.o&&L.o.tractor&&L.o.tractor[0]===470&&L.o.tractor[1]===880)delete L.o.tractor;for(const k in L.o||{})if(OBJ[k]){OBJ[k].x=L.o[k][0];OBJ[k].y=L.o[k][1]}for(const k in L.p||{})if(PENS[k]){PENS[k].x=L.p[k][0];PENS[k].y=L.p[k][1]}if(L.f){FX=L.f[0];FY=L.f[1]}}
 function objAt(x,y){
  const inBox=o=>Math.abs(x-o.x)<o.w*.42&&y<o.y+6&&y>o.y-o.h*.9;
  let list=Object.values(OBJ).sort((a,b)=>b.y-a.y);for(const o of list)if(inBox(o))return{o,kind:'obj'};
@@ -165,9 +186,9 @@ function moveBy(m,dx,dy){let o=m.o,nx=Math.max(WX0+60,Math.min(WX1-60,o.x+dx)),n
  if(m.kind==='field'){plots.forEach(p=>{if(p.f==='main'){p.x+=dx;p.y+=dy}})}}
 (function(){const scene=document.getElementById('scene');let timer=null,st=null,last=null;
  scene.addEventListener('pointerdown',e=>{clearTimeout(timer);if(pointers.size>0){st=null;return}st={x:e.clientX,y:e.clientY};
-  timer=setTimeout(()=>{if(!st)return;let w=toWorld(st.x,st.y),m=objAt(w.x,w.y);if(!m)return;moving=m;last=w;drag=null;try{navigator.vibrate&&navigator.vibrate(40)}catch(_){}toast('Arraste para mudar '+(m.o.nome||'')+' de lugar');if(window.SND)SND.play('click')},450)},true);
+  timer=setTimeout(()=>{if(!st)return;let w=toWorld(st.x,st.y),m=objAt(w.x,w.y);if(!m)return;moving=m;m.sx=m.o.x;m.sy=m.o.y;last=w;drag=null;try{navigator.vibrate&&navigator.vibrate(40)}catch(_){}toast('Arraste para mudar '+(m.o.nome||'')+' de lugar');if(window.SND)SND.play('click')},450)},true);
  scene.addEventListener('pointermove',e=>{if(moving){let w=toWorld(e.clientX,e.clientY);moveBy(moving,w.x-last.x,w.y-last.y);last=w;e.stopPropagation();return}if(st&&Math.hypot(e.clientX-st.x,e.clientY-st.y)>10){clearTimeout(timer);st=null}},true);
- const end=()=>{clearTimeout(timer);st=null;if(moving){if(moving.kind==='field')buildField(plots);moving=null;drag=null;save();toast('Novo lugar salvo!')}};
+ const end=()=>{clearTimeout(timer);st=null;if(moving){let m=moving,bad=overlaps(itemOf(m));if(bad){moveBy(m,m.sx-m.o.x,m.sy-m.o.y);toast('Não cabe aí! Voltou para o lugar anterior.');if(window.SND)SND.play('error')}else{toast('Novo lugar salvo!')}if(m.kind==='field')buildField(plots);moving=null;drag=null;save()}};
  scene.addEventListener('pointerup',end,true);scene.addEventListener('pointercancel',end,true);
  setTimeout(()=>document.getElementById('hint').classList.add('off'),7000)})();
 
@@ -189,7 +210,7 @@ function expandLand(){let rows=ZONES.map(z=>{let own=zonesOwned.includes(z.id);r
  let main=fieldN<5?'<div class="mission"><b>Aumentar a plantação principal</b><p>De '+fieldN+'×'+fieldN+' para 5×5 canteiros · 300 moedas</p><button class="panelbtn" onclick="growMain()">Aumentar</button></div>':'';
  openPanel('Expandir a fazenda','<p>Compre terrenos em volta da fazenda. Afaste o zoom para ver todos.</p>'+main+rows)}
 function growMain(){if(coins<300){toast('Precisa de 300 moedas');return}coins-=300;land=2;buildField(plots);gainXP(40);updateHud();save();closePanels();toast('Plantação principal agora tem 5×5 canteiros!')}
-load();updateHud();window.addEventListener('resize',resize);resize();requestAnimationFrame(tick);setInterval(()=>{regen();updateHud();save()},5000);regen();
+applyLayout(null);load();if(fixOverlaps())save();updateHud();window.addEventListener('resize',resize);resize();requestAnimationFrame(tick);setInterval(()=>{regen();updateHud();save()},5000);regen();
 
 /* ===== Sons e música (gerados no próprio jogo, sem arquivos) ===== */
 const SND=(()=>{let ac=null,master,musicGain,sfxGain,on=true,started=false,musicTimer=null,step=0;
