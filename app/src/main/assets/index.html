@@ -33,10 +33,10 @@
 </nav></div>
 <script>
 const canvas=document.getElementById('world'),ctx=canvas.getContext('2d');
-const names=['map','house','barn','silo','windmill','well','market','tractor','cow','pig','sheep','chicken','dog','pen','empty_plot','wheat_1','wheat_2','wheat_3','corn_1','corn_2','corn_3','carrot_1','carrot_2','carrot_3','strawberry_1','strawberry_2','strawberry_3','lettuce_1','lettuce_2','lettuce_3','apple_tree','flower_bush','pine_tree','willow_tree','gate','cart','crate','barrel'];
+const names=['lake','house','barn','silo','windmill','well','market','tractor','cow','pig','sheep','chicken','dog','pen','empty_plot','wheat_1','wheat_2','wheat_3','corn_1','corn_2','corn_3','carrot_1','carrot_2','carrot_3','strawberry_1','strawberry_2','strawberry_3','lettuce_1','lettuce_2','lettuce_3','apple_tree','flower_bush','pine_tree','willow_tree','gate','cart','crate','barrel'];
 const img={};names.forEach(n=>{img[n]=new Image();img[n].src='images/'+n+'.png'});
 const W=1536,H=1024;let scale=1,camX=0,camY=0,viewW=0,viewH=0,last=0,selectedCrop='wheat',coins=250,energy=30,xp=0,level=1,land=1,animalProducts={cow:0,pig:0,sheep:0,chicken:0},dailyStamp='',tractorUntil=0;
-const WX0=-460,WX1=2080,WY0=-60,WY1=1320;let FX=700,FY=625;const HX=52,HY=30;let fieldN=4;let plots=[];let zonesOwned=[];
+const WX0=-700,WX1=2300,WY0=-160,WY1=1460;let FX=700,FY=625;const HX=52,HY=30;let fieldN=4;let plots=[];let zonesOwned=[];
 const ZONES=[{id:'ne',x:1790,y:330,n:5,cost:500,lv:2,nome:'Terreno do Leste'},{id:'nw',x:-150,y:290,n:5,cost:1000,lv:3,nome:'Terreno do Oeste'},{id:'se',x:1720,y:910,n:5,cost:2000,lv:4,nome:'Terreno do Sul'},{id:'sw',x:-140,y:960,n:5,cost:3500,lv:5,nome:'Terreno da Várzea'}];
 function fieldSize(l){return Math.min(5,3+l)}
 function fields(){let f=[{id:'main',x:FX,y:FY,n:fieldN}];ZONES.forEach(z=>{if(zonesOwned.includes(z.id))f.push(z)});return f}
@@ -55,17 +55,27 @@ function regen(){let n=Math.floor((Date.now()-energyTs)/60000);if(n>0){if(energy
 function resize(){let r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);viewW=r.width;viewH=r.height;minS=Math.min(viewW/(WX1-WX0),viewH/(WY1-WY0));scale=viewH>viewW?Math.max(minS,viewW*1.7/W,viewH*.78/H):Math.max(viewW/W,viewH/H);camX=(viewH>viewW?850:W/2)-viewW/scale/2;camY=(viewH>viewW?560:H/2)-viewH/scale/2;clampCam();worldDraw(performance.now())}
 
 /* terra em volta da fazenda, com árvores e áreas à venda */
-const inIsland=(x,y)=>Math.abs(x-768)/790+Math.abs(y-580)/445<1;
+const inIsland=(x,y)=>Math.abs(x-800)/1080+Math.abs(y-640)/640<1;
 const DECOR=(()=>{let r=7,rnd=()=>(r=(r*16807)%2147483647)/2147483647,out=[],kinds=['pine_tree','apple_tree','willow_tree','flower_bush','pine_tree','flower_bush'];
- for(let n=0;n<400&&out.length<46;n++){let x=WX0+rnd()*(WX1-WX0),y=WY0+60+rnd()*(WY1-WY0-60);if(inIsland(x,y+40)||inIsland(x,y-60))continue;
+ for(let n=0;n<1500&&out.length<90;n++){let x=WX0+rnd()*(WX1-WX0),y=WY0+60+rnd()*(WY1-WY0-60);if(inIsland(x,y+40)||inIsland(x,y-60))continue;
   if(ZONES.some(z=>Math.abs(x-z.x)/(z.n*HX+40)+Math.abs(y-z.y)/(z.n*HY+60)<1.05))continue;if(out.some(o=>Math.hypot(o.x-x,o.y-y)<90))continue;if(Math.abs(x-1330)<190&&Math.abs(y-930)<150)continue;
   let k=kinds[Math.floor(rnd()*kinds.length)];out.push({x,y,k,s:.8+rnd()*.5})}return out.sort((a,b)=>a.y-b.y)})();
 const DSZ={pine_tree:[70,66],apple_tree:[190,110],willow_tree:[70,117],flower_bush:[90,40]};
+let GROUND=null;const GS=.6;
+function buildGround(){const c=document.createElement('canvas'),w=Math.ceil((WX1-WX0+800)*GS),h=Math.ceil((WY1-WY0+800)*GS);c.width=w;c.height=h;const g=c.getContext('2d');g.scale(GS,GS);g.translate(-(WX0-400),-(WY0-400));
+ g.fillStyle='#7fc24f';g.fillRect(WX0-400,WY0-400,WX1-WX0+800,WY1-WY0+800);
+ const P=(i,j)=>[(i-j)*HX*2,(i+j)*HY*2];
+ for(let i=-40;i<60;i++)for(let j=-50;j<40;j++){let[x,y]=P(i,j);if(x<WX0-500||x>WX1+500||y<WY0-500||y>WY1+500)continue;
+  g.fillStyle=(i+j)%2?'#86c955':'#7dbf4c';g.beginPath();g.moveTo(x,y);g.lineTo(x+HX*2,y+HY*2);g.lineTo(x,y+HY*4);g.lineTo(x-HX*2,y+HY*2);g.closePath();g.fill()}
+ let gr=g.createRadialGradient(800,640,200,800,640,1500);gr.addColorStop(0,'rgba(255,255,200,.10)');gr.addColorStop(1,'rgba(20,60,10,.18)');g.fillStyle=gr;g.fillRect(WX0-400,WY0-400,WX1-WX0+800,WY1-WY0+800);
+ let r=11,rnd=()=>(r=(r*16807)%2147483647)/2147483647;
+ for(let k=0;k<5200;k++){let x=WX0-300+rnd()*(WX1-WX0+600),y=WY0-300+rnd()*(WY1-WY0+600),c=rnd();
+  if(c<.82){g.strokeStyle=rnd()<.5?'#5ea33a':'#9ad866';g.lineWidth=2;g.beginPath();g.moveTo(x-4,y);g.lineTo(x-1,y-8);g.moveTo(x,y);g.lineTo(x+1,y-10);g.moveTo(x+4,y);g.lineTo(x+2,y-7);g.stroke()}
+  else{g.fillStyle=['#fff','#ffe066','#ff9ec7','#c9a7ff'][Math.floor(rnd()*4)];g.beginPath();g.arc(x,y,2.6,0,7);g.fill();g.fillStyle='#ffd34d';g.beginPath();g.arc(x,y,1,0,7);g.fill()}}
+ GROUND=c}
 function drawOuter(t,front){
- if(!front){ctx.fillStyle='#86c95a';ctx.fillRect(WX0-3000,WY0-3000,WX1-WX0+6000,WY1-WY0+6000);
-  ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=2;for(let k=-40;k<40;k++){ctx.beginPath();ctx.moveTo(WX0+k*104-400,WY0-200);ctx.lineTo(WX0+k*104-400+2400,WY0-200+1385);ctx.stroke();ctx.beginPath();ctx.moveTo(WX0+k*104+2400,WY0-200);ctx.lineTo(WX0+k*104,WY0-200+1385);ctx.stroke()}
-  ZONES.forEach(z=>drawZone(z,t))}
- DECOR.forEach(d=>{if((d.y<580)===!front){let [w,h]=DSZ[d.k];drawSprite(d.k,d.x,d.y,w*d.s,h*d.s)}})}
+ if(!front){if(!GROUND)buildGround();ctx.drawImage(GROUND,WX0-400,WY0-400,GROUND.width/GS,GROUND.height/GS);ZONES.forEach(z=>drawZone(z,t))}
+ DECOR.forEach(d=>{let [w,h]=DSZ[d.k];drawSprite(d.k,d.x,d.y,w*d.s,h*d.s)})}
 function drawZone(z,t){if(zonesOwned.includes(z.id))return;let n=z.n,P=(a,b)=>[z.x+(a-b)*HX,z.y-n*HY+(a+b)*HY];
  const pl=(pts,f)=>{ctx.beginPath();pts.forEach((q,k)=>k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fillStyle=f;ctx.fill()};
  pl([P(0,0),P(n,0),P(n,n),P(0,n)],'rgba(70,120,40,.35)');
@@ -80,9 +90,9 @@ function askZone(z){openPanel(z.nome,'<p>Uma nova plantação com <b>'+z.n*z.n+'
 function goTo(x,y){camX=x-viewW/scale/2;camY=y-viewH/scale/2;clampCam()}
 function drawSprite(key,x,y,w,h){let im=img[key];if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,x-w/2,y-h,w,h)}
 function worldDraw(t){ctx.clearRect(0,0,viewW,viewH);ctx.save();ctx.scale(scale,scale);ctx.translate(-camX,-camY);
-drawOuter(t,0);if(img.map?.complete)ctx.drawImage(img.map,0,0,W,H);drawOuter(t,1);
+drawOuter(t,0);
 // Buildings are separate PNG objects layered over the illustrated terrain.
-Object.values(OBJ).filter(o=>o.k!=='tractor').sort((a,b)=>a.y-b.y).forEach(o=>{drawSprite(o.k,o.x,o.y,o.w,o.h);if(moving&&moving.o===o)drawFoot(moving)});
+Object.values(OBJ).filter(o=>o.k!=='tractor').sort((a,b)=>((b.flat||0)-(a.flat||0))||(a.y-b.y)).forEach(o=>{drawSprite(o.k,o.x,o.y,o.w,o.h);if(moving&&moving.o===o)drawFoot(moving)});
 // Extra farm details
 if(land>1)drawSprite('apple_tree',410,470,150,170);
 // Garden plots and crop stages
@@ -151,11 +161,11 @@ function drawBubbles(t){animals.forEach(a=>{let P=PROD[a.type];if(!P||!prodReady
  let T=OBJ.tractor,n=plots.filter(p=>p.crop&&Date.now()>=p.readyAt).length;if(n&&Date.now()>=tractorUntil){let bob=Math.sin(t/220)*4,x=T.x,y=T.y-T.h-14+bob;ctx.save();ctx.fillStyle='#4caf50';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x-34,y-17,68,32,16);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='900 16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🌾 '+n,x,y);ctx.restore()}}
 function hit(x,y){let c=cellAt(x,y);if(c){plantAt(c);return true}let zz=zoneAt(x,y);if(zz){askZone(zz);return true}{let T=OBJ.tractor;if(Math.abs(x-T.x)<T.w*.5&&y<T.y+8&&y>T.y-T.h){useTractor();return true}}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
 let pointers=new Map(),drag=null,pinch=null,minS=.3;
-const OBJ={house:{k:'house',x:280,y:430,w:270,h:270,nome:'Casa'},barn:{k:'barn',x:1210,y:360,w:250,h:230,nome:'Celeiro'},silo:{k:'silo',x:1370,y:310,w:100,h:220,nome:'Silo'},windmill:{k:'windmill',x:1450,y:520,w:170,h:260,nome:'Moinho'},well:{k:'well',x:350,y:618,w:115,h:160,nome:'Poço'},market:{k:'market',x:220,y:610,w:180,h:175,nome:'Feira'},tractor:{k:'tractor',x:610,y:845,w:125,h:110,nome:'Trator'}};
+const OBJ={lake:{k:'lake',x:976,y:414,w:465,h:283,nome:'Lago',flat:1},house:{k:'house',x:280,y:430,w:270,h:270,nome:'Casa'},barn:{k:'barn',x:1210,y:360,w:250,h:230,nome:'Celeiro'},silo:{k:'silo',x:1370,y:310,w:100,h:220,nome:'Silo'},windmill:{k:'windmill',x:1450,y:520,w:170,h:260,nome:'Moinho'},well:{k:'well',x:350,y:618,w:115,h:160,nome:'Poço'},market:{k:'market',x:220,y:610,w:180,h:175,nome:'Feira'},tractor:{k:'tractor',x:610,y:845,w:125,h:110,nome:'Trator'}};
 let moving=null;
 /* ocupação do chão: cada coisa tem um losango; nada pode encostar no outro */
 function fpOf(kind,o){let r,cx,cy;
- if(kind==='obj'){r=o.w*.4;cx=o.x;cy=o.y-r*HY/HX*.9}
+ if(kind==='obj'){r=o.w*(o.flat?.46:.4);cx=o.x;cy=o.y-(o.flat?o.h*.5:r*HY/HX*.9)}
  else if(kind==='pen'){r=o.w*.46;cx=o.x;cy=o.y-r*HY/HX-o.h*.04}
  else{r=o.n*HX;cx=o.x;cy=o.y}
  return{u:(cx/HX+cy/HY)/2,v:(cy/HY-cx/HX)/2,a:r/(2*HX),cx,cy,r}}
@@ -170,7 +180,7 @@ function drawFoot(m){let F=fpOf(m.kind,itemOf(m).o),ok=placeOk(itemOf(m)),hw=F.r
 
 /* mapa do que já está pintado no chão (estrada, árvore, água, cerca, flores) */
 const MASK=(()=>{const b=atob('AAAAAAAfyHcAAAAAAAAAAAG//PeAAAAAAAAAAGf////AAAAAAAAAAP/////eT4AAAAAAAP///////8AAAAAAAf///////+AAAAAAAf//////8PAAAAAAA///////8HgAAAABw///////4HwAAAAH//+d////zPwAAAAP//4P//////wAAAAf//4f//////wAAAAf//w///////8AAAA///5////////AAAB///9////////gAHz///////////jwAP///9////////fwAf////+P///////4A4////8H///////4A7////+D///////4A/z////j///////4B/3//////////z/wD////7///////5/gDn///w///////5/wH///7hv//////7/4H///wDz////gBz/8H//+gBn///wAAB/+H//8AAD///gAAAf/P//wAAB///AAAAn/f//gAAAf/+AAAd/////AAAAf//hAA/////+AAAAOf/7gD////8AAAAAAH//4n////4AAAAANP///3////ABAAAAf////////+ADgAAA/////////+AHgAAB//////////A/wYAH//////////n/w8AP//+P////////wYAP//4D////////8DAH//gA/////////HwP//wB////8f///n4///z/////wH////7//nn/////AD//////+Pn////8AA//////8P3////wAAP//+//+Hj////AAAD////+PAB///8AAAA////8HgA///wAAAAf////PwH///AAAAAH/////4f//8AAAAAB/////w///4AAAAAAf////////gAAAAAAH///////+AAAAAAAB///////4AAAAAAAAf//////gAAAAAAAAH/////+AAAAAAAAAD/////4AAAAAAAAAA/////gAAAAAAAAAAP///+AAAAAAAAAAAD///4AAAAAAAAAAAA///gAAAAAAAAAAAAP/+AAAAAAAAAAAAAD+AAAAAAAA'),gw=96,gh=64,a=new Uint8Array(gw*gh);for(let i=0;i<a.length;i++)a[i]=(b.charCodeAt(i>>3)>>(7-(i&7)))&1;return{a,gw,gh,c:16}})();
-function paintedAt(x,y){if(x<0||y<0||x>=W||y>=H)return 0;let gx=Math.floor(x/16),gy=Math.floor(y/16);return MASK.a[gy*MASK.gw+gx]}
+function paintedAt(x,y){return 0;if(x<0||y<0||x>=W||y>=H)return 0;let gx=Math.floor(x/16),gy=Math.floor(y/16);return MASK.a[gy*MASK.gw+gx]}
 function decorAt(x,y){return DECOR.some(d=>Math.hypot(d.x-x,(d.y-y)*1.6)<38)}
 function zoneHit(x,y){return ZONES.some(z=>!zonesOwned.includes(z.id)&&Math.abs(x-z.x)/(z.n*HX)+Math.abs(y-z.y)/(z.n*HY)<=1)}
 function blockedFrac(item){let F=fpOf(item.kind,item.o),hw=F.r,hh=F.r*HY/HX,n=0,b=0;
