@@ -1,39 +1,29 @@
 # Fazenda Feliz — Android
 
-Primeira versão jogável do **Fazenda Feliz**, feita para Android com Kotlin + WebView.
+Projeto Android nativo (Kotlin) com o jogo em HTML/CSS/JavaScript dentro de um WebView. Interface em português e orientação paisagem.
 
-## Recursos
-- 8 sementes (nabo, cenoura, milho, tomate, abóbora, morango, melancia e girassol), liberadas por nível; algumas dão duas safras.
-- Plantas crescem em tempo real em cinco etapas, mesmo com o app fechado.
-- Mato, bichinhos e terra seca para cuidar: quem cuida colhe mais.
-- Celeiro para vender a colheita.
-- Pedidos de clientes entregues pelo caminhão, pagando mais que o celeiro.
-- Loja: adubo, espantalho, motor turbo e irrigação automática.
-- Níveis, novos canteiros (até 16), presente diário e salvamento automático.
-
-## Estrutura
-- `app/src/main/java/com/fazendafeliz/MainActivity.kt`: atividade Android.
-- `app/src/main/assets/index.html`: interface e lógica do jogo.
-- `app/src/main/AndroidManifest.xml`: configuração do aplicativo.
-- `app/src/main/res/`: ícone do app.
-- `gradle/wrapper/gradle-wrapper.properties`: versão do Gradle (8.9).
+## O que já funciona nesta versão
+- Mapa ilustrado da fazenda como cenário visual.
+- 4 canteiros interativos.
+- Plantio de trigo, milho, cenoura, morango e alface.
+- Crescimento temporizado, colheita individual e colheita de todos.
+- Moedas, gemas, energia, XP e níveis.
+- Cuidados demonstrativos com vaca, porco e galinhas.
+- Loja, presente diário, missões, construções e expansão demonstrativa.
+- Salvamento automático no armazenamento local do WebView.
 
 ## Baixar o APK pelo celular
-A cada envio para o repositório, o GitHub gera o APK sozinho (aba **Actions**). Quando terminar, ele aparece em **Releases**, no arquivo `FazendaFeliz.apk`, pronto para baixar e instalar.
+A cada envio para o repositório, o GitHub gera o APK sozinho (aba **Actions**). Quando terminar, ele aparece em **Releases**, no arquivo `FazendaFeliz.apk`.
 
-## Abrir e gerar APK no computador
-1. Abra a pasta `Fazenda_Feliz_Android` no Android Studio.
-2. Aguarde a sincronização do Gradle. Se o Android Studio perguntar sobre o Gradle wrapper, aceite usar o `gradle-wrapper.properties`.
-3. Conecte um celular Android com depuração USB ou use um emulador.
-4. Clique em **Run** para testar.
-5. Para gerar APK: **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
+## Abrir no Android Studio
+1. Baixe/extraia o projeto completo.
+2. No Android Studio, escolha **Open** e selecione a pasta `Fazenda_Feliz_Android`.
+3. Aguarde a sincronização do Gradle.
+4. Conecte o celular com depuração USB ou use um emulador.
+5. Pressione Run para instalar.
 
-## Identificação
-- Nome: Fazenda Feliz
-- Pacote: `com.fazendafeliz`
-- Plataforma: Android
-- `minSdk`: 23
-- `targetSdk`: 35
+## Publicar no GitHub
+Envie o conteúdo desta pasta para a raiz do repositório `FAZENDA-FELIZ`, mantendo os caminhos exatamente como estão.
 
 ## Observação
-Esta é uma primeira versão 2.5D leve, sem servidor e sem multiplayer. A cena ainda não é 3D real. Próximas etapas podem adicionar modelos 3D, animais interativos, missões e visitas a outras fazendas.
+Esta é uma primeira versão jogável/protótipo. O mapa é uma ilustração de cenário; os controles de plantio, colheita, economia e progresso são interativos. As construções e expansão ainda são demonstrativas e serão conectadas ao mapa em versões seguintes.
