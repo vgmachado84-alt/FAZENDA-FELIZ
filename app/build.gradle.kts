@@ -11,8 +11,17 @@ android {
         applicationId = "com.fazendafeliz"
         minSdk = 23
         targetSdk = 35
-        versionCode = 8
-        versionName = "2.1"
+        versionCode = 9
+        versionName = "2.2"
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("fazenda-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     compileOptions {

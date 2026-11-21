@@ -46,7 +46,7 @@ function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'
 let energyTs=Date.now();
 function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify({coins,energy,xp,level,land,plots,animalProducts,dailyStamp,energyTs}))}
 function regen(){let n=Math.floor((Date.now()-energyTs)/60000);if(n>0){if(energy<30)energy=Math.min(30,energy+n);energyTs+=n*60000;updateHud()}if(energy>=30)energyTs=Date.now()}
-function resize(){let r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);viewW=r.width;viewH=r.height;minS=Math.min(viewW/W,viewH/H)*.98;scale=viewH>viewW?Math.max(minS,viewW*1.7/W,viewH*.78/H):Math.max(viewW/W,viewH/H);camX=(W-viewW/scale)/2;camY=(H-viewH/scale)/2;clampCam();worldDraw(performance.now())}
+function resize(){let r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);viewW=r.width;viewH=r.height;minS=Math.min(viewW/W,viewH/H)*.98;scale=viewH>viewW?Math.max(minS,viewW*1.7/W,viewH*.78/H):Math.max(viewW/W,viewH/H);camX=(viewH>viewW?850:W/2)-viewW/scale/2;camY=(viewH>viewW?560:H/2)-viewH/scale/2;clampCam();worldDraw(performance.now())}
 function drawSprite(key,x,y,w,h){let im=img[key];if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,x-w/2,y-h,w,h)}
 function worldDraw(t){ctx.clearRect(0,0,viewW,viewH);ctx.save();ctx.scale(scale,scale);ctx.translate(-camX,-camY);
 if(img.map?.complete)ctx.drawImage(img.map,0,0,W,H);
