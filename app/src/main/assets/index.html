@@ -149,7 +149,7 @@ function updateHud(){document.getElementById('coins').textContent=coins;document
 function gainXP(n){xp+=n;while(xp>=level*100){xp-=level*100;level++;coins+=50;toast('Subiu para o nível '+level+'! +50 moedas')}updateHud();save()}
 function toast(s){let e=document.getElementById('toast');e.textContent=s;e.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>e.style.opacity=0,1900)}
 function choosePlant(c){selectedCrop=c;document.querySelectorAll('.action').forEach(x=>x.classList.remove('selected'));document.getElementById('plantBtn').classList.add('selected');toast('Semente selecionada: '+({wheat:'trigo',corn:'milho',carrot:'cenoura',strawberry:'morango',lettuce:'alface'}[c]))}
-function plantAt(p,quiet){if(p.crop&&Date.now()>=p.readyAt){let value={wheat:18,corn:24,carrot:30,strawberry:38,lettuce:32}[p.crop];coins+=value;energy=Math.min(30,energy+1);gainXP(12);p.crop=null;floaters.push({x:p.x,y:p.y-30,txt:'+'+value,t:0});if(!quiet)toast('Colheita realizada! +'+value+' moedas');updateHud();save();return}if(p.crop){if(!quiet)toast('A plantação ainda está crescendo');return}if(energy<1){toast('Sem energia. Aguarde ou receba o presente diário.');return}let cost={wheat:3,corn:5,carrot:6,strawberry:8,lettuce:7}[selectedCrop];if(coins<cost){toast('Moedas insuficientes');return}coins-=cost;floaters.push({x:p.x,y:p.y-30,txt:'-'+cost,t:0,neg:1});energy--;p.crop=selectedCrop;p.planted=Date.now();p.readyAt=Date.now()+({wheat:35000,corn:50000,carrot:60000,strawberry:75000,lettuce:65000}[selectedCrop]);p.stage=1;updateHud();save();if(!quiet)toast('Semente plantada! Dica: arraste o dedo pela plantação para plantar vários.');}
+function plantAt(p,quiet){if(editMode)return;if(p.crop&&Date.now()>=p.readyAt){let value={wheat:18,corn:24,carrot:30,strawberry:38,lettuce:32}[p.crop];coins+=value;energy=Math.min(30,energy+1);gainXP(12);p.crop=null;floaters.push({x:p.x,y:p.y-30,txt:'+'+value,t:0});if(!quiet)toast('Colheita realizada! +'+value+' moedas');updateHud();save();return}if(p.crop){if(!quiet)toast('A plantação ainda está crescendo');return}if(energy<1){toast('Sem energia. Aguarde ou receba o presente diário.');return}let cost={wheat:3,corn:5,carrot:6,strawberry:8,lettuce:7}[selectedCrop];if(coins<cost){toast('Moedas insuficientes');return}coins-=cost;floaters.push({x:p.x,y:p.y-30,txt:'-'+cost,t:0,neg:1});energy--;p.crop=selectedCrop;p.planted=Date.now();p.readyAt=Date.now()+({wheat:35000,corn:50000,carrot:60000,strawberry:75000,lettuce:65000}[selectedCrop]);p.stage=1;updateHud();save();if(!quiet)toast('Semente plantada! Dica: arraste o dedo pela plantação para plantar vários.');}
 let floaters=[];
 const PROD={cow:{n:'Leite',e:'🥛',t:180,r:28,nome:'A vaca'},sheep:{n:'Lã',e:'🧶',t:240,r:32,nome:'A ovelha'},chicken:{n:'Ovos',e:'🥚',t:90,r:18,nome:'A galinha'},pig:{n:'Bacon',e:'🥓',t:300,r:40,nome:'O porco'}};
 function prodReady(k){let v=animalProducts[k]||0;return v<1e12||Date.now()>=v}
@@ -162,7 +162,7 @@ function drawBubbles(t){animals.forEach(a=>{let P=PROD[a.type];if(!P||!prodReady
   ctx.save();ctx.fillStyle='#fff';ctx.strokeStyle='#e79a24';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,19,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-6,y+16);ctx.lineTo(x+6,y+16);ctx.lineTo(x,y+26);ctx.closePath();ctx.fill();
   ctx.font='22px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(P.e,x,y+1);ctx.restore()});
  let T=OBJ.tractor,n=plots.filter(p=>p.crop&&Date.now()>=p.readyAt).length;if(n&&Date.now()>=tractorUntil){let bob=Math.sin(t/220)*4,x=T.x,y=T.y-T.h-14+bob;ctx.save();ctx.fillStyle='#4caf50';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x-34,y-17,68,32,16);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='900 16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🌾 '+n,x,y);ctx.restore()}}
-function hit(x,y){let c=cellAt(x,y);if(c){plantAt(c);return true}if(!landAt(x,y)){let[a,b]=chunkOf(x,y);askLand(a,b);return true}{let T=OBJ.tractor;if(Math.abs(x-T.x)<T.w*.5&&y<T.y+8&&y>T.y-T.h){useTractor();return true}}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
+function hit(x,y){let c=cellAt(x,y);if(c){if(editMode)return true;if(!c.crop){seedRing(c);return true}plantAt(c);return true}if(!landAt(x,y)){let[a,b]=chunkOf(x,y);askLand(a,b);return true}{let T=OBJ.tractor;if(Math.abs(x-T.x)<T.w*.5&&y<T.y+8&&y>T.y-T.h){useTractor();return true}}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
 let pointers=new Map(),drag=null,pinch=null,minS=.3;
 const OBJ={lake:{k:'lake',x:976,y:414,w:465,h:283,nome:'Lago',flat:1},house:{k:'house',x:280,y:430,w:270,h:270,nome:'Casa'},barn:{k:'barn',x:1210,y:360,w:250,h:230,nome:'Celeiro'},silo:{k:'silo',x:1370,y:310,w:100,h:220,nome:'Silo'},windmill:{k:'windmill',x:1450,y:520,w:170,h:260,nome:'Moinho'},well:{k:'well',x:350,y:618,w:115,h:160,nome:'Poço'},market:{k:'market',x:220,y:610,w:180,h:175,nome:'Feira'},tractor:{k:'tractor',x:610,y:845,w:125,h:110,nome:'Trator'}};
 let moving=null;
@@ -213,8 +213,8 @@ function moveBy(m,dx,dy){let o=m.o,nx=Math.max(WX0+60,Math.min(WX1-60,o.x+dx)),n
  if(m.kind==='pen')animals.forEach(a=>{if(penOf(a)===o){a.x+=dx;a.y+=dy;if(a.tx!==undefined){a.tx+=dx;a.ty+=dy}}});
  if(m.kind==='field'){let id=m.fid||'main';plots.forEach(p=>{if(p.f===id){p.x+=dx;p.y+=dy}})}}
 (function(){const scene=document.getElementById('scene');let timer=null,st=null,last=null;
- scene.addEventListener('pointerdown',e=>{clearTimeout(timer);if(pointers.size>0){st=null;return}st={x:e.clientX,y:e.clientY};
-  timer=setTimeout(()=>{if(!st)return;let w=toWorld(st.x,st.y),m=objAt(w.x,w.y);if(!m)return;moving=m;m.sx=m.o.x;m.sy=m.o.y;if(m.o.deco){let T=document.getElementById('trash');T.style.display='block';T.classList.remove('hot')}last=w;drag=null;try{navigator.vibrate&&navigator.vibrate(40)}catch(_){}toast('Arraste para mudar '+(m.o.nome||'')+' de lugar');if(window.SND)SND.play('click')},450)},true);
+ scene.addEventListener('pointerdown',e=>{clearTimeout(timer);if(roadMode||e.target.closest('button')||e.target.closest('#shelf')){st=null;return}if(pointers.size>0){st=null;return}st={x:e.clientX,y:e.clientY};
+  timer=setTimeout(()=>{if(!st)return;let w=toWorld(st.x,st.y),m=objAt(w.x,w.y);if(!m)return;moving=m;m.sx=m.o.x;m.sy=m.o.y;if(m.o.deco){let T=document.getElementById('trash');T.style.display='block';T.classList.remove('hot')}last=w;drag=null;try{navigator.vibrate&&navigator.vibrate(40)}catch(_){}toast('Arraste para mudar '+(m.o.nome||'')+' de lugar');if(window.SND)SND.play('click')},editMode?0:450)},true);
  scene.addEventListener('pointermove',e=>{if(moving){window._px=e.clientX;window._py=e.clientY;let T=document.getElementById('trash');if(T&&moving.o.deco){let r=T.getBoundingClientRect();T.classList.toggle('hot',e.clientX>r.left-20&&e.clientX<r.right+20&&e.clientY>r.top-20&&e.clientY<r.bottom+20)}let w=toWorld(e.clientX,e.clientY);moveBy(moving,w.x-last.x,w.y-last.y);last=w;e.stopPropagation();return}if(st&&Math.hypot(e.clientX-st.x,e.clientY-st.y)>10){clearTimeout(timer);st=null}},true);
  const end=()=>{clearTimeout(timer);st=null;if(moving){let m=moving,T=document.getElementById('trash');if(T)T.style.display='none';if(m.o.deco&&T&&T.classList.contains('hot')){DECO=DECO.filter(d=>d!==m.o);coins+=Math.floor((m.o.p||20)/2);updateHud();moving=null;drag=null;save();toast(m.o.nome+' vendido: +'+Math.floor((m.o.p||20)/2)+' moedas');return}let bad=!placeOk(itemOf(m));if(bad){moveBy(m,m.sx-m.o.x,m.sy-m.o.y);toast(overlaps(itemOf(m))?'Não cabe aí! Está em cima de outra construção.':'Não pode ficar em cima de estrada ou árvore.');if(window.SND)SND.play('error')}else{if(clearDecorIn(itemOf(m)))toast('Novo lugar salvo! As plantas do caminho foram removidas.');else toast('Novo lugar salvo!')}if(m.kind==='field')buildField(plots);moving=null;drag=null;save()}};
  scene.addEventListener('pointerup',end,true);scene.addEventListener('pointercancel',end,true);
@@ -335,6 +335,74 @@ function buyDeco(c){let d=DECOCAT.find(q=>q.c===c);if(coins<d.p){toast('Moedas i
 function buyField(){if(EXTRAS.length>=3){toast('Você já tem o máximo de plantações extras');return}if(level<3){toast('Plantação extra libera no nível 3');return}if(coins<800){toast('Faltam '+(800-coins)+' moedas');return}
  let id='x'+Date.now().toString(36),it=findSpot((x,y)=>({kind:'field',key:'f'+id,o:{id,x,y,n:4}}));if(!it){toast('Sem espaço livre: compre mais terreno');return}
  coins-=800;EXTRAS.push(it.o);clearDecorIn(it);buildField(plots);updateHud();save();closePanels();goTo(it.o.x,it.o.y);toast('Nova plantação! Segure o dedo nela para mudar de lugar.')}
+/* ===== interface no estilo dos jogos de fazenda: botões redondos, modo edição e menu de sementes ===== */
+let editMode=false;
+const CROPS=[['wheat','Trigo',3],['corn','Milho',5],['carrot','Cenoura',6],['strawberry','Morango',8],['lettuce','Alface',7]];
+(function(){
+ const css=document.createElement('style');css.textContent=`
+ #bottom,#roadBtn,#buildBar{display:none!important}
+ .rb{position:fixed;z-index:22;width:58px;height:58px;border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 35% 30%,#ffe9a8,#f1a92e 70%);box-shadow:0 5px 0 #b06a12,0 8px 14px #0004;display:grid;place-items:center;font-size:28px;padding:0;transition:transform .12s;color:#5a3410}
+ .rb:active{transform:translateY(4px) scale(.94);box-shadow:0 1px 0 #b06a12,0 3px 6px #0004}
+ .rb small{position:absolute;bottom:-17px;left:50%;translate:-50% 0;font-size:11px;font-weight:900;color:#fff;text-shadow:0 1px 2px #000,0 0 4px #000;white-space:nowrap}
+ .rb.big{width:74px;height:74px;font-size:36px;background:radial-gradient(circle at 35% 30%,#b6f08a,#3fa33a 70%);box-shadow:0 5px 0 #23701f,0 8px 14px #0004}
+ .rb .bd{position:absolute;top:-6px;right:-6px;min-width:24px;height:24px;border-radius:12px;background:#e53935;color:#fff;font-size:13px;font-weight:900;display:none;place-items:center;padding:0 6px;border:2px solid #fff;animation:bounce 1s infinite}
+ .rb.has .bd{display:grid}.rb.wig{animation:wig 1.6s infinite}
+ @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+ @keyframes wig{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-12deg)}90%{transform:rotate(10deg)}95%{transform:rotate(-6deg)}}
+ #hud{transition:opacity .2s}body.edit #hud{opacity:0;pointer-events:none}
+ #zoomBox{position:fixed;right:12px;bottom:118px;z-index:21;display:flex;flex-direction:column;gap:8px}
+ #zoomBox button{width:42px;height:42px;border-radius:50%;border:2px solid #fff;background:#fff8e6;color:#5a3410;font-weight:900;font-size:20px;box-shadow:0 3px 0 #c9a46b;padding:0}
+ #zoomBox button:active{transform:translateY(2px);box-shadow:none}
+ #shelf{position:fixed;left:0;right:0;bottom:0;z-index:25;background:linear-gradient(#fff8e6,#f3d79c);border-top:3px solid #c98a4a;box-shadow:0 -4px 14px #0003;display:none;align-items:center;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));overflow-x:auto;scrollbar-width:none}
+ #shelf::-webkit-scrollbar{display:none}body.edit #shelf{display:flex}
+ #shelf .it{flex:none;width:72px;min-height:74px;border-radius:14px;border:2px solid #e2bd7c;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;font-weight:900;font-size:11px;color:#5a3410;gap:2px;transition:transform .1s}
+ #shelf .it:active{transform:scale(.92)}#shelf .it img{height:34px;max-width:58px;object-fit:contain}#shelf .it span{font-size:20px;line-height:1}
+ #shelf .it small{font-size:10px;color:#2e7d32}#shelf .it.sel{background:linear-gradient(#fff6a9,#ffcf4a);border-color:#e39b19}
+ #shelf .ok{flex:none;width:66px;height:66px;border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 35% 30%,#b6f08a,#3fa33a 70%);color:#fff;font-size:32px;font-weight:900;box-shadow:0 4px 0 #23701f}
+ #shelf .sep{flex:none;width:2px;align-self:stretch;background:#d9b276;margin:4px 2px}
+ #editTag{position:fixed;top:62px;left:50%;translate:-50% 0;z-index:24;background:#254d2b;color:#fff;font-weight:900;padding:6px 14px;border-radius:16px;font-size:13px;display:none;box-shadow:0 3px 8px #0004;text-align:center;max-width:92vw}body.edit #editTag{display:block}
+ #ring{position:fixed;inset:0;z-index:40;display:none}#ring.on{display:block}
+ #ring .sd{position:absolute;width:62px;height:62px;border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 35% 30%,#fffbe8,#f6d99b);box-shadow:0 4px 10px #0005;display:grid;place-items:center;translate:-50% -50%;animation:pop .22s ease-out backwards;padding:0}
+ #ring .sd img{width:38px;height:38px;object-fit:contain}#ring .sd b{position:absolute;bottom:-10px;background:#2e7d32;color:#fff;font-size:11px;border-radius:9px;padding:1px 6px}
+ #ring .sd.cur{border-color:#ffcf4a;box-shadow:0 0 0 4px #ffcf4a88,0 4px 10px #0005}
+ @keyframes pop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+ #panel{animation:pop .2s ease-out}
+ #toast{bottom:auto!important;top:118px}body.edit #toast{top:170px}#hint{display:none!important}
+ @media(max-height:560px){.rb{width:50px;height:50px;font-size:24px}.rb.big{width:62px;height:62px;font-size:30px}.rb small{font-size:10px;bottom:-15px}#hGift{top:72px!important}#hMis{top:72px!important;left:76px!important}#hEdit{bottom:20px!important}#hTractor{bottom:20px!important;left:76px!important}#hLand{bottom:20px!important;left:140px!important}#zoomBox{bottom:100px;flex-direction:row}#zoomBox button{width:38px;height:38px}#shelf .it{min-height:60px;width:64px}#shelf .ok{width:56px;height:56px}#editTag{top:56px}}
+ #sndBtn{position:fixed!important;top:62px;right:10px;left:auto!important;bottom:auto!important;width:40px!important;height:40px!important;font-size:18px!important;z-index:23}
+ `;document.head.appendChild(css);
+ const H=document.createElement('div');H.id='hud';
+ const rb=(id,ico,lab,pos,fn,big)=>`<button class="rb${big?' big':''}" id="${id}" style="${pos}" aria-label="${lab}" onclick="${fn}">${ico}<small>${lab}</small><i class="bd"></i></button>`;
+ H.innerHTML=rb('hShop','🛒','Loja','right:12px;bottom:22px','openShop()',1)+rb('hEdit','🔨','Editar','left:12px;bottom:22px','enterEdit()')+
+  rb('hTractor','🚜','Trator','left:12px;bottom:112px','useTractor()')+rb('hLand','🗺️','Terreno','left:12px;bottom:202px','expandLand()')+
+  rb('hGift','🎁','Presente','left:12px;top:126px','dailyGift()')+rb('hMis','📋','Missões','left:12px;top:216px','openMissions()');
+ document.body.appendChild(H);
+ const tag=document.createElement('div');tag.id='editTag';document.body.appendChild(tag);
+ const sh=document.createElement('div');sh.id='shelf';document.body.appendChild(sh);
+ const ring=document.createElement('div');ring.id='ring';ring.onclick=e=>{if(e.target===ring)ring.classList.remove('on')};document.body.appendChild(ring);
+ // zoom buttons: find existing container and restyle
+ setTimeout(()=>document.querySelectorAll('.zb').forEach(b=>{if(/Aproximar|Afastar|Centralizar/.test(b.getAttribute('aria-label')||'')){let p=b.parentElement;if(p&&p!==document.body){p.id='zoomBox';p.removeAttribute('style')}}if(/som/i.test(b.getAttribute('aria-label')||''))b.id='sndBtn'}),200);
+})();
+function shelfHTML(){return `<button class="ok" onclick="exitEdit()" aria-label="Terminar">✓</button>`+
+ [['m','✋','Mover',''],['t','🟫','Terra','5'],['a','⬛','Asfalto','12'],['f','🪵','Cerca','8'],['x','🧽','Apagar','½']].map(([k,e,n,p])=>`<button class="it${tool===k?' sel':''}" onclick="enterEdit('${k}')"><span>${e}</span>${n}${p?'<small>'+(p==='½'?'devolve ½':p+' moedas')+'</small>':''}</button>`).join('')+
+ '<i class="sep"></i>'+DECOCAT.map(d=>`<button class="it" onclick="buyDeco('${d.c}')"><img src="images/${d.k}.png" alt="">${d.n}<small>${d.p} moedas</small></button>`).join('')+
+ `<button class="it" onclick="buyField()"><img src="images/empty_plot.png" alt="">Plantação<small>800 moedas</small></button>`}
+const EDITMSG={m:'Arraste qualquer construção ou decoração para mudar de lugar',t:'Arraste o dedo para fazer estrada de terra',a:'Arraste o dedo para fazer asfalto',f:'Arraste o dedo para fazer cerca',x:'Arraste sobre estrada ou cerca para apagar'};
+function enterEdit(t){editMode=true;tool=t||'m';roadMode=tool!=='m';document.body.classList.add('edit');
+ document.getElementById('shelf').innerHTML=shelfHTML();document.getElementById('editTag').textContent='✏️ Modo edição · '+EDITMSG[tool];closePanels&&closePanels()}
+function exitEdit(){editMode=false;roadMode=false;tool='m';document.body.classList.remove('edit');save();toast('Fazenda salva!')}
+setRoadMode=function(on,t){if(on)enterEdit(t||'t');else exitEdit()};
+function seedRing(c){const R=document.getElementById('ring'),r=canvas.getBoundingClientRect(),sx=r.left+(c.x-camX)*scale,sy=r.top+(c.y-camY)*scale,rad=86;
+ R.innerHTML=CROPS.map(([k,n,p],i)=>{let a=Math.PI*(1.12+i*.19),x=Math.max(40,Math.min(innerWidth-40,sx+Math.cos(a)*rad)),y=Math.max(140,sy+Math.sin(a)*rad);return`<button class="sd${k===selectedCrop?' cur':''}" style="left:${x}px;top:${y}px;animation-delay:${i*.03}s" aria-label="${n}" onclick="pickSeed('${k}',${c.id})"><img src="images/${k}_3.png" alt=""><b>${p}</b></button>`}).join('');
+ R.classList.add('on');if(window.SND)SND.play('click')}
+function pickSeed(k,id){document.getElementById('ring').classList.remove('on');selectedCrop=k;let pb=document.getElementById('plantBtn');if(pb)pb.innerHTML='<span>Plantar</span><small>'+CROPS.find(q=>q[0]===k)[1]+'</small>';
+ let p=plots.find(q=>q.id===id);if(p)plantAt(p);toast('Dica: arraste o dedo pelos canteiros vazios para plantar '+CROPS.find(q=>q[0]===k)[1].toLowerCase()+' em vários')}
+function updateBadges(){const set=(id,n)=>{let b=document.getElementById(id);if(!b)return;b.classList.toggle('has',!!n);b.querySelector('.bd').textContent=n===true?'!':n};
+ let ready=plots.filter(p=>p.crop&&Date.now()>=p.readyAt).length;set('hTractor',ready||0);
+ let today=new Date().toISOString().slice(0,10);set('hGift',dailyStamp!==today);document.getElementById('hGift').classList.toggle('wig',dailyStamp!==today);
+ let pr=landPrice();set('hLand',coins>=pr&&level>=landLevel());}
+setInterval(updateBadges,1000);
+
 function openDecoShop(){openPanel('Decoração e construção','<div class="shopgrid">'+DECOCAT.map(d=>'<div class="shopitem"><img src="images/'+d.k+'.png"><strong>'+d.n+'</strong><span>'+d.p+' moedas</span><br><button onclick="buyDeco(\''+d.c+'\')">Comprar</button></div>').join('')+
  '<div class="shopitem"><img src="images/empty_plot.png"><strong>Plantação extra</strong><span>800 moedas · nível 3</span><br><button onclick="buyField()">Comprar</button></div>'+
  '<div class="shopitem"><img src="images/gate.png"><strong>Cerca</strong><span>8 moedas por pedaço</span><br><button onclick="closePanels();setRoadMode(true,\'f\')">Desenhar cerca</button></div>'+
