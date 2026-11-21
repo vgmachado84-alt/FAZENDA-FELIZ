@@ -34,35 +34,64 @@ const canvas=document.getElementById('world'),ctx=canvas.getContext('2d');
 const names=['map','house','barn','silo','windmill','well','market','tractor','cow','pig','sheep','chicken','dog','pen','empty_plot','wheat_1','wheat_2','wheat_3','corn_1','corn_2','corn_3','carrot_1','carrot_2','carrot_3','strawberry_1','strawberry_2','strawberry_3','lettuce_1','lettuce_2','lettuce_3','apple_tree','flower_bush','pine_tree','willow_tree','gate','cart','crate','barrel'];
 const img={};names.forEach(n=>{img[n]=new Image();img[n].src='images/'+n+'.png'});
 const W=1536,H=1024;let scale=1,camX=0,camY=0,viewW=0,viewH=0,last=0,selectedCrop='wheat',coins=250,energy=30,xp=0,level=1,land=1,animalProducts={cow:0,pig:0,sheep:0,chicken:0},dailyStamp='',tractorUntil=0;
-const FX=700,FY=625,HX=52,HY=30;let fieldN=4;let plots=[];
+const WX0=-460,WX1=2080,WY0=-60,WY1=1320;const FX=700,FY=625,HX=52,HY=30;let fieldN=4;let plots=[];let zonesOwned=[];
+const ZONES=[{id:'ne',x:1790,y:330,n:5,cost:500,lv:2,nome:'Terreno do Leste'},{id:'nw',x:-150,y:290,n:5,cost:1000,lv:3,nome:'Terreno do Oeste'},{id:'se',x:1720,y:910,n:5,cost:2000,lv:4,nome:'Terreno do Sul'},{id:'sw',x:-140,y:960,n:5,cost:3500,lv:5,nome:'Terreno da Várzea'}];
 function fieldSize(l){return Math.min(5,3+l)}
-function buildField(old){fieldN=fieldSize(land);let np=[];for(let i=0;i<fieldN;i++)for(let j=0;j<fieldN;j++){let c=cellCenter(i,j);np.push({i,j,x:c.x,y:c.y,crop:null,stage:0,planted:0,readyAt:0,id:np.length})}
- (old||[]).forEach((p,k)=>{if(p&&p.crop&&np[k]){np[k].crop=p.crop;np[k].planted=p.planted;np[k].readyAt=p.readyAt}});plots=np}
-function cellCenter(i,j){let ty=FY-fieldN*HY;return{x:FX+(i-j)*HX,y:ty+(i+j+1)*HY}}
-function cellAt(x,y){let u=(x-FX)/HX,v=(y-(FY-fieldN*HY))/HY,i=Math.floor((v+u)/2),j=Math.floor((v-u)/2);if(i<0||j<0||i>=fieldN||j>=fieldN)return null;return plots[i*fieldN+j]}
+function fields(){let f=[{id:'main',x:FX,y:FY,n:fieldN}];ZONES.forEach(z=>{if(zonesOwned.includes(z.id))f.push(z)});return f}
+function cellCenterF(F,i,j){return{x:F.x+(i-j)*HX,y:F.y-F.n*HY+(i+j+1)*HY}}
+function cellCenter(i,j){return cellCenterF({x:FX,y:FY,n:fieldN},i,j)}
+function buildField(old){fieldN=fieldSize(land);let np=[];fields().forEach(F=>{for(let i=0;i<F.n;i++)for(let j=0;j<F.n;j++){let c=cellCenterF(F,i,j);np.push({f:F.id,i,j,x:c.x,y:c.y,crop:null,stage:0,planted:0,readyAt:0,id:np.length})}});
+ (old||[]).forEach((p,k)=>{if(!p||!p.crop)return;let fid=p.f||'main',t=np.find(q=>q.f===fid&&q.i===p.i&&q.j===p.j);if(!t&&!p.f)t=np[k];if(t){t.crop=p.crop;t.planted=p.planted;t.readyAt=p.readyAt}});plots=np}
+function cellAt(x,y){for(const F of fields()){let u=(x-F.x)/HX,v=(y-(F.y-F.n*HY))/HY,i=Math.floor((v+u)/2),j=Math.floor((v-u)/2);if(i>=0&&j>=0&&i<F.n&&j<F.n)return plots.find(p=>p.f===F.id&&p.i===i&&p.j===j)}return null}
+function zoneAt(x,y){return ZONES.find(z=>!zonesOwned.includes(z.id)&&Math.abs(x-z.x)/(z.n*HX)+Math.abs(y-z.y)/(z.n*HY)<=1)}
 buildField();
 let animals=[{type:'cow',x:0,y:0,start:1,dx:1,dy:0.2,product:'Leite'},{type:'pig',x:0,y:0,start:1,dx:-.6,dy:.5,product:''},{type:'sheep',x:0,y:0,start:1,dx:.3,dy:-.7,product:'Lã'},{type:'chicken',x:0,y:0,start:1,dx:.8,dy:-.3,product:'Ovos'},{type:'dog',x:960,y:610,dx:-.5,dy:-.2,product:''}];
-function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??'';energyTs=s.energyTs??Date.now()}}catch(e){}}
+function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;zonesOwned=s.zonesOwned||[];buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??'';energyTs=s.energyTs??Date.now()}}catch(e){}}
 let energyTs=Date.now();
-function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify({coins,energy,xp,level,land,plots,animalProducts,dailyStamp,energyTs}))}
+function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify({coins,energy,xp,level,land,zonesOwned,plots,animalProducts,dailyStamp,energyTs}))}
 function regen(){let n=Math.floor((Date.now()-energyTs)/60000);if(n>0){if(energy<30)energy=Math.min(30,energy+n);energyTs+=n*60000;updateHud()}if(energy>=30)energyTs=Date.now()}
-function resize(){let r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);viewW=r.width;viewH=r.height;minS=Math.min(viewW/W,viewH/H)*.98;scale=viewH>viewW?Math.max(minS,viewW*1.7/W,viewH*.78/H):Math.max(viewW/W,viewH/H);camX=(viewH>viewW?850:W/2)-viewW/scale/2;camY=(viewH>viewW?560:H/2)-viewH/scale/2;clampCam();worldDraw(performance.now())}
+function resize(){let r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);viewW=r.width;viewH=r.height;minS=Math.min(viewW/(WX1-WX0),viewH/(WY1-WY0))*.98;scale=viewH>viewW?Math.max(minS,viewW*1.7/W,viewH*.78/H):Math.max(viewW/W,viewH/H);camX=(viewH>viewW?850:W/2)-viewW/scale/2;camY=(viewH>viewW?560:H/2)-viewH/scale/2;clampCam();worldDraw(performance.now())}
+
+/* terra em volta da fazenda, com árvores e áreas à venda */
+const inIsland=(x,y)=>Math.abs(x-768)/790+Math.abs(y-580)/445<1;
+const DECOR=(()=>{let r=7,rnd=()=>(r=(r*16807)%2147483647)/2147483647,out=[],kinds=['pine_tree','apple_tree','willow_tree','flower_bush','pine_tree','flower_bush'];
+ for(let n=0;n<400&&out.length<46;n++){let x=WX0+rnd()*(WX1-WX0),y=WY0+60+rnd()*(WY1-WY0-60);if(inIsland(x,y+40)||inIsland(x,y-60))continue;
+  if(ZONES.some(z=>Math.abs(x-z.x)/(z.n*HX+40)+Math.abs(y-z.y)/(z.n*HY+60)<1.05))continue;if(out.some(o=>Math.hypot(o.x-x,o.y-y)<90))continue;
+  let k=kinds[Math.floor(rnd()*kinds.length)];out.push({x,y,k,s:.8+rnd()*.5})}return out.sort((a,b)=>a.y-b.y)})();
+const DSZ={pine_tree:[70,66],apple_tree:[190,110],willow_tree:[70,117],flower_bush:[90,40]};
+function drawOuter(t,front){
+ if(!front){ctx.fillStyle='#86c95a';ctx.fillRect(WX0-200,WY0-200,WX1-WX0+400,WY1-WY0+400);
+  ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=2;for(let k=-40;k<40;k++){ctx.beginPath();ctx.moveTo(WX0+k*104-400,WY0-200);ctx.lineTo(WX0+k*104-400+2400,WY0-200+1385);ctx.stroke();ctx.beginPath();ctx.moveTo(WX0+k*104+2400,WY0-200);ctx.lineTo(WX0+k*104,WY0-200+1385);ctx.stroke()}
+  ZONES.forEach(z=>drawZone(z,t))}
+ DECOR.forEach(d=>{if((d.y<580)===!front){let [w,h]=DSZ[d.k];drawSprite(d.k,d.x,d.y,w*d.s,h*d.s)}})}
+function drawZone(z,t){if(zonesOwned.includes(z.id))return;let n=z.n,P=(a,b)=>[z.x+(a-b)*HX,z.y-n*HY+(a+b)*HY];
+ const pl=(pts,f)=>{ctx.beginPath();pts.forEach((q,k)=>k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fillStyle=f;ctx.fill()};
+ pl([P(0,0),P(n,0),P(n,n),P(0,n)],'rgba(70,120,40,.35)');
+ ctx.save();ctx.setLineDash([12,10]);ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=4;ctx.beginPath();[P(0,0),P(n,0),P(n,n),P(0,n)].forEach((q,k)=>k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.stroke();ctx.restore();
+ [[.25,.3],[.7,.2],[.4,.75],[.8,.7],[.5,.45]].forEach(([a,b],k)=>{let q=P(a*n,b*n);drawSprite(k%2?'flower_bush':'pine_tree',q[0],q[1]+10,k%2?60:48,k%2?27:45)});
+ let ok=level>=z.lv,txt=ok?'🔒 '+z.cost+' moedas':'🔒 Nível '+z.lv;ctx.save();ctx.font='900 22px sans-serif';ctx.textAlign='center';let tw=ctx.measureText(txt).width+34,bob=Math.sin(t/400)*3;
+ ctx.fillStyle=ok?'#e79a24':'rgba(70,45,20,.85)';ctx.beginPath();ctx.roundRect(z.x-tw/2,z.y-22+bob,tw,40,20);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.stroke();ctx.fillStyle='#fff';ctx.fillText(txt,z.x,z.y+7+bob);
+ ctx.font='bold 15px sans-serif';ctx.fillStyle='rgba(60,40,15,.85)';ctx.fillText(z.nome,z.x,z.y+40+bob);ctx.restore()}
+function buyZone(z){if(level<z.lv){toast('Chegue ao nível '+z.lv+' para comprar este terreno');return}if(coins<z.cost){toast('Faltam '+(z.cost-coins)+' moedas para este terreno');return}
+ coins-=z.cost;zonesOwned.push(z.id);buildField(plots);gainXP(50);updateHud();save();closePanels&&closePanels();toast(z.nome+' comprado! Nova plantação com '+z.n*z.n+' canteiros 🎉');if(window.SND)SND.play('level')}
+function askZone(z){openPanel(z.nome,'<p>Uma nova plantação com <b>'+z.n*z.n+' canteiros</b> para você plantar.</p><p>Preço: <b>'+z.cost+' moedas</b> · precisa do nível '+z.lv+'.</p><button class="panelbtn" onclick="buyZone(ZONES.find(z=>z.id===\''+z.id+'\'))">Comprar terreno</button>')}
+function goTo(x,y){camX=x-viewW/scale/2;camY=y-viewH/scale/2;clampCam()}
 function drawSprite(key,x,y,w,h){let im=img[key];if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,x-w/2,y-h,w,h)}
 function worldDraw(t){ctx.clearRect(0,0,viewW,viewH);ctx.save();ctx.scale(scale,scale);ctx.translate(-camX,-camY);
-if(img.map?.complete)ctx.drawImage(img.map,0,0,W,H);
+drawOuter(t,0);if(img.map?.complete)ctx.drawImage(img.map,0,0,W,H);drawOuter(t,1);
 // Buildings are separate PNG objects layered over the illustrated terrain.
 drawSprite('house',280,430,270,270);drawSprite('barn',1210,360,250,230);drawSprite('silo',1370,310,100,220);drawSprite('windmill',1450,520,170,260);drawSprite('well',330,610,115,160);drawSprite('market',220,610,180,175);
 // Extra farm details
 if(land>1)drawSprite('apple_tree',410,470,150,170);
 // Garden plots and crop stages
-{let ty=FY-fieldN*HY,P=(a,b)=>[FX+(a-b)*HX,ty+(a+b)*HY];
- const poly=(pts,f)=>{ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(q=>ctx.lineTo(q[0],q[1]));ctx.closePath();ctx.fillStyle=f;ctx.fill()};
- let n=fieldN;poly([P(0,0),P(n,0),P(n,n),P(0,n)],'#7a4b26');
+{const poly=(pts,f)=>{ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(q=>ctx.lineTo(q[0],q[1]));ctx.closePath();ctx.fillStyle=f;ctx.fill()};
+ fields().forEach(F=>{let n=F.n,ty=F.y-n*HY,P=(a,b)=>[F.x+(a-b)*HX,ty+(a+b)*HY];
+ poly([P(0,0),P(n,0),P(n,n),P(0,n)],'#7a4b26');
  poly([P(n,0),P(n,n),[P(n,n)[0],P(n,n)[1]+10],[P(n,0)[0],P(n,0)[1]+10]],'#5b3519');poly([P(0,n),P(n,n),[P(n,n)[0],P(n,n)[1]+10],[P(0,n)[0],P(0,n)[1]+10]],'#6b3f1e');
- plots.forEach(p=>{let a=p.i,b=p.j,dry=!p.crop;poly([P(a+.06,b+.06),P(a+.94,b+.06),P(a+.94,b+.94),P(a+.06,b+.94)],dry?'#8f5c30':'#6e4322');
+ plots.forEach(p=>{if(p.f!==F.id)return;let a=p.i,b=p.j,dry=!p.crop;poly([P(a+.06,b+.06),P(a+.94,b+.06),P(a+.94,b+.94),P(a+.06,b+.94)],dry?'#8f5c30':'#6e4322');
   ctx.strokeStyle='rgba(60,32,12,.45)';ctx.lineWidth=2;for(let r=1;r<4;r++){let q1=P(a+.12,b+r*.25),q2=P(a+.88,b+r*.25);ctx.beginPath();ctx.moveTo(q1[0],q1[1]);ctx.lineTo(q2[0],q2[1]);ctx.stroke()}});
- ctx.strokeStyle='#c98a4a';ctx.lineWidth=5;ctx.beginPath();[P(0,0),P(n,0),P(n,n),P(0,n)].forEach((q,k)=>k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.stroke();
- [...plots].sort((p,q)=>(p.i+p.j)-(q.i+q.j)).forEach(p=>{if(!p.crop)return;let f=(Date.now()-p.planted)/Math.max(1,p.readyAt-p.planted);let st=f>=1?3:f>=.45?2:1;p.stage=st;let sz=st===1?.6:st===2?.8:1;
+ ctx.strokeStyle='#c98a4a';ctx.lineWidth=5;ctx.beginPath();[P(0,0),P(n,0),P(n,n),P(0,n)].forEach((q,k)=>k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.stroke()});
+ [...plots].sort((p,q)=>p.y-q.y).forEach(p=>{if(!p.crop)return;let f=(Date.now()-p.planted)/Math.max(1,p.readyAt-p.planted);let st=f>=1?3:f>=.45?2:1;p.stage=st;let sz=st===1?.6:st===2?.8:1;
   let im=img[p.crop+'_'+st];if(im&&im.naturalWidth){let w=72*sz,h=w*im.naturalHeight/im.naturalWidth;let bob=st===3?Math.sin(t/300+p.id)*1.5:0;ctx.drawImage(im,p.x-w/2,p.y+12-h+bob,w,h)}
   if(st===3){ctx.save();ctx.globalAlpha=.5+.4*Math.sin(t/220+p.id);ctx.fillStyle='#fff7b0';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.fillText('✦',p.x+16,p.y-28);ctx.restore()}
   else{let bw=38;ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(p.x-bw/2,p.y+14,bw,5);ctx.fillStyle='#ffd34d';ctx.fillRect(p.x-bw/2,p.y+14,bw*Math.min(1,f),5)}});
@@ -107,12 +136,12 @@ function choosePlant(c){selectedCrop=c;document.querySelectorAll('.action').forE
 function plantAt(p,quiet){if(p.crop&&Date.now()>=p.readyAt){let value={wheat:18,corn:24,carrot:30,strawberry:38,lettuce:32}[p.crop];coins+=value;energy=Math.min(30,energy+1);gainXP(12);p.crop=null;floaters.push({x:p.x,y:p.y-30,txt:'+'+value,t:0});if(!quiet)toast('Colheita realizada! +'+value+' moedas');updateHud();save();return}if(p.crop){if(!quiet)toast('A plantação ainda está crescendo');return}if(energy<1){toast('Sem energia. Aguarde ou receba o presente diário.');return}let cost={wheat:3,corn:5,carrot:6,strawberry:8,lettuce:7}[selectedCrop];if(coins<cost){toast('Moedas insuficientes');return}coins-=cost;floaters.push({x:p.x,y:p.y-30,txt:'-'+cost,t:0,neg:1});energy--;p.crop=selectedCrop;p.planted=Date.now();p.readyAt=Date.now()+({wheat:35000,corn:50000,carrot:60000,strawberry:75000,lettuce:65000}[selectedCrop]);p.stage=1;updateHud();save();if(!quiet)toast('Semente plantada! Dica: arraste o dedo pela plantação para plantar vários.');}
 let floaters=[];
 function collectAnimal(a){let key=a.type;if(!a.product){toast('O '+(key==='dog'?'cachorro':'porquinho')+' está feliz!');gainXP(2);return}if((animalProducts[key]||0)>=1){toast('Este animal já entregou '+a.product.toLowerCase()+' hoje');return}animalProducts[key]=1;let reward=key==='cow'?28:key==='chicken'?20:25;coins+=reward;gainXP(8);toast(a.product+' recebido! +'+reward+' moedas');updateHud();save()}
-function hit(x,y){let c=cellAt(x,y);if(c){plantAt(c);return true}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
+function hit(x,y){let c=cellAt(x,y);if(c){plantAt(c);return true}let zz=zoneAt(x,y);if(zz){askZone(zz);return true}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
 let pointers=new Map(),drag=null,pinch=null,minS=.3;
 function toWorld(cx,cy){let r=canvas.getBoundingClientRect();return {x:(cx-r.left)/scale+camX,y:(cy-r.top)/scale+camY}}
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1){drag={id:e.pointerId,x:e.clientX,y:e.clientY,camX,camY,moved:false};let w=toWorld(e.clientX,e.clientY),c=cellAt(w.x,w.y);if(c){drag.paint=new Set([c.id]);drag.first=c}}if(pointers.size===2){let a=[...pointers.values()];pinch={dist:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),scale,midX:(a[0].x+a[1].x)/2,midY:(a[0].y+a[1].y)/2};drag=null}});
 canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2&&pinch){let a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),ns=Math.max(minS,Math.min(2.2,pinch.scale*d/pinch.dist));let mx=(a[0].x+a[1].x)/2,my=(a[0].y+a[1].y)/2,r=canvas.getBoundingClientRect();let wx=(pinch.midX-r.left)/scale+camX,wy=(pinch.midY-r.top)/scale+camY;scale=ns;camX=wx-(mx-r.left)/scale;camY=wy-(my-r.top)/scale;clampCam();return}if(drag&&drag.id===e.pointerId&&drag.paint){let w=toWorld(e.clientX,e.clientY),c=cellAt(w.x,w.y);if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>6){if(!drag.moved){drag.moved=true;plantAt(drag.first,true)}if(c&&!drag.paint.has(c.id)){drag.paint.add(c.id);plantAt(c,true)}}return}if(drag&&drag.id===e.pointerId){let dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;camX=drag.camX-dx/scale;camY=drag.camY-dy/scale;clampCam()}});
-function clampCam(){if(W*scale<=viewW)camX=(W-viewW/scale)/2;else camX=Math.max(-30,Math.min(W-viewW/scale+30,camX));if(H*scale<=viewH)camY=(H-viewH/scale)/2;else camY=Math.max(-30,Math.min(H-viewH/scale+30,camY))}
+function clampCam(){let ww=WX1-WX0,wh=WY1-WY0;if(ww*scale<=viewW)camX=WX0+(ww-viewW/scale)/2;else camX=Math.max(WX0,Math.min(WX1-viewW/scale,camX));if(wh*scale<=viewH)camY=WY0+(wh-viewH/scale)/2;else camY=Math.max(WY0,Math.min(WY1-viewH/scale,camY))}
 function zoomBy(f){let cx=camX+viewW/scale/2,cy=camY+viewH/scale/2;scale=Math.max(minS,Math.min(2.2,scale*f));camX=cx-viewW/scale/2;camY=cy-viewH/scale/2;clampCam()}
 function zoomReset(){resize()}
 canvas.addEventListener('pointerup',e=>{let p=pointers.get(e.pointerId);if(pointers.size===1&&drag&&!drag.moved){let w=toWorld(e.clientX,e.clientY);if(!hit(w.x,w.y)){} }pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;if(pointers.size===0)drag=null});canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);drag=null;pinch=null});
@@ -123,7 +152,10 @@ function buySeed(k){choosePlant(k);closePanels()}function buyAnimal(k){let c=k==
 function openMissions(){openPanel('Missões da fazenda','<div class="mission"><b>Primeira colheita</b><p>Colha 3 canteiros para ganhar 80 moedas e 30 XP.</p><button class="panelbtn" onclick="claimMission(3)">Resgatar recompensa</button></div><div class="mission"><b>Cuide dos animais</b><p>Recolha leite, ovos ou lã.</p><button class="panelbtn" onclick="claimMission(2)">Resgatar 40 moedas</button></div><div class="mission"><b>Pequena expansão</b><p>Abra mais espaço para sua fazenda.</p><button class="panelbtn" onclick="expandLand();closePanels()">Expandir terreno</button></div>')}
 function claimMission(n){coins+=n===3?80:40;gainXP(30);updateHud();save();toast('Missão concluída! Recompensa recebida.');closePanels()}
 function dailyGift(){let today=new Date().toISOString().slice(0,10);if(dailyStamp===today){toast('O presente de hoje já foi recebido');return}dailyStamp=today;coins+=100;energy=Math.min(30,energy+10);gainXP(15);updateHud();save();toast('Presente diário: 100 moedas e 10 energias!')}
-function expandLand(){let cost=land===1?300:land===2?600:1000;if(coins<cost){toast('Precisa de '+cost+' moedas para expandir');return}coins-=cost;if(land>=2){coins+=cost;toast('A plantação já está no tamanho máximo');return}land++;buildField(plots);gainXP(40);updateHud();save();toast('Plantação maior: agora '+fieldN+'×'+fieldN+' canteiros!')}
+function expandLand(){let rows=ZONES.map(z=>{let own=zonesOwned.includes(z.id);return '<div class="mission"><b>'+z.nome+'</b><p>'+(own?'Já é seu! '+z.n*z.n+' canteiros.':z.n*z.n+' canteiros · '+z.cost+' moedas · nível '+z.lv)+'</p>'+(own?'<button class="panelbtn" onclick="closePanels();goTo('+z.x+','+z.y+')">Ver no mapa</button>':'<button class="panelbtn" onclick="buyZone(ZONES.find(q=>q.id===\''+z.id+'\'))">Comprar</button> <button class="panelbtn" onclick="closePanels();goTo('+z.x+','+z.y+')">Ver no mapa</button>')+'</div>'}).join('');
+ let main=fieldN<5?'<div class="mission"><b>Aumentar a plantação principal</b><p>De '+fieldN+'×'+fieldN+' para 5×5 canteiros · 300 moedas</p><button class="panelbtn" onclick="growMain()">Aumentar</button></div>':'';
+ openPanel('Expandir a fazenda','<p>Compre terrenos em volta da fazenda. Afaste o zoom para ver todos.</p>'+main+rows)}
+function growMain(){if(coins<300){toast('Precisa de 300 moedas');return}coins-=300;land=2;buildField(plots);gainXP(40);updateHud();save();closePanels();toast('Plantação principal agora tem 5×5 canteiros!')}
 load();updateHud();window.addEventListener('resize',resize);resize();requestAnimationFrame(tick);setInterval(()=>{regen();updateHud();save()},5000);regen();
 
 /* ===== Sons e música (gerados no próprio jogo, sem arquivos) ===== */
