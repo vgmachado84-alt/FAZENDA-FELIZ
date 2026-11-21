@@ -1,58 +1,435 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Fazenda Feliz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,Arial;background:#8bd36b;color:#263b25;overflow:hidden}
-#app{height:100dvh;display:flex;flex-direction:column;background:linear-gradient(#8bd5fa 0 30%,#9cdd72 30% 100%)}
-header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fff9e9;border-bottom:3px solid #d7b878;z-index:2}
-.logo{font-weight:900;font-size:18px;color:#39813c;text-shadow:1px 1px #fff}.stats{display:flex;gap:7px;font-size:13px;font-weight:800}.pill{background:#fff;border:2px solid #e5d5a8;border-radius:18px;padding:5px 9px;white-space:nowrap}
-#scene{position:relative;flex:1;overflow:hidden;touch-action:pan-y}
-#world{position:absolute;width:900px;height:700px;left:50%;top:50%;transform:translate(-50%,-48%) scale(var(--zoom,.72));transform-origin:center center}
-#ground{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 48%,#b7e987,#81cb5c 68%,#6eb84f);clip-path:polygon(50% 0,100% 30%,50% 100%,0 68%)}
-#plots{position:absolute;left:250px;top:220px;width:400px;display:grid;grid-template-columns:repeat(4,90px);gap:12px;transform:skewY(-25deg) rotate(0deg)}
-.plot{height:66px;border:3px solid #9b673a;border-radius:9px;background:linear-gradient(135deg,#a66e3e,#754725);box-shadow:0 5px 0 #5d3d28;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:29px;transform:skewY(25deg);user-select:none}
-.plot.empty:after{content:"";position:absolute;inset:7px;border:2px dashed #d8a66d;border-radius:5px;opacity:.65}
-.plot.ready{background:linear-gradient(135deg,#b57b40,#87552b);animation:glow 1s infinite alternate}
-@keyframes glow{to{filter:brightness(1.22)}}
-#barn{position:absolute;left:90px;top:210px;font-size:92px;filter:drop-shadow(0 8px 2px #477d38)}
-#tree{position:absolute;right:90px;top:265px;font-size:82px;filter:drop-shadow(0 7px 2px #477d38)}
-#cow{position:absolute;left:100px;top:440px;font-size:55px;filter:drop-shadow(0 5px 1px #477d38)}
-#well{position:absolute;right:160px;top:460px;font-size:55px}
-#sign{position:absolute;left:395px;top:120px;font-size:45px}
-footer{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:9px;background:#fff9e9;border-top:3px solid #d7b878;z-index:3}
-button{border:0;border-radius:13px;padding:10px 5px;font-weight:800;background:#6ebc4c;color:white;box-shadow:0 3px 0 #43852f;font-size:13px}
-button:active{transform:translateY(2px);box-shadow:0 1px 0 #43852f}
-#panel{position:absolute;z-index:5;left:50%;bottom:12px;transform:translateX(-50%);width:min(94%,430px);background:#fffdf3;border:3px solid #d9bd7d;border-radius:18px;padding:13px;box-shadow:0 8px 25px #31552d66;display:none}
-#panel h3{margin:0 0 8px;color:#397b37}#panel .items{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.item{background:#f2f8df;border:2px solid #d6e5b9;border-radius:12px;padding:9px;text-align:center;font-size:13px}
-.item button{width:100%;margin-top:6px}
-#close{float:right;background:#d66b55;box-shadow:0 3px #a44332;padding:5px 10px}
-#toast{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:#263b25;color:white;padding:9px 15px;border-radius:20px;z-index:8;opacity:0;transition:.2s;pointer-events:none;font-weight:700;font-size:13px;white-space:nowrap}
-#hint{position:absolute;bottom:10px;left:10px;background:#ffffffc9;padding:7px 10px;border-radius:10px;font-size:11px}
-</style></head>
-<body><div id="app">
-<header><div class="logo">🌻 FAZENDA FELIZ</div><div class="stats"><div class="pill">🪙 <span id="coins">150</span></div><div class="pill">⭐ Nv. <span id="level">1</span></div></div></header>
-<div id="scene"><div id="world"><div id="ground"></div><div id="barn">🏡</div><div id="tree">🌳</div><div id="cow">🐄</div><div id="well">🪣</div><div id="sign">🌻</div><div id="plots"></div></div><div id="hint">Toque em um canteiro para plantar ou colher</div><div id="toast"></div><div id="panel"><button id="close" onclick="closePanel()">✕</button><h3 id="panelTitle">Loja da fazenda</h3><div id="panelBody"></div></div></div>
-<footer><button onclick="openShop()">🛒 Loja</button><button onclick="selectSeed()">🌱 Plantar</button><button onclick="sellAll()">📦 Vender</button><button onclick="expand()">🧱 Expandir</button></footer>
+/* VOICE: alegre, nostálgico, de joguinho de rede social dos anos 2010
+   IDEA: um sítio visto de cima, em perspectiva, com casinha, cerca, árvore e canteiros
+   PICTURE: os canteiros em si, com plantas que crescem em etapas e frutos que pulam quando maduros
+   COLOUR and TYPE: céu azul, grama verde viva, terra marrom, vermelho de celeiro como acento; Baloo 2
+   LAYOUT: nível e moedas em cima, sítio ocupando a tela, barra de ações embaixo */
+:root{color-scheme:light;--ink:#3b2412;--card:#fffaf0;--wood:#8a5a36;--red:#d9483b;--gold:#f4b400;--leaf:#4caf50}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;background:#9ad86a;color:var(--ink);font:16px/1.3 "Baloo 2","Roboto",system-ui,sans-serif;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;cursor:pointer}
+.app{position:fixed;inset:0;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.top{position:absolute;left:0;right:0;top:env(safe-area-inset-top);display:flex;gap:8px;padding:10px;z-index:3;align-items:flex-start}
+.lv{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:22px;padding:4px 14px 4px 4px;box-shadow:0 3px 0 #0002;flex:1;max-width:240px}
+.badge{width:42px;height:42px;border-radius:50%;background:var(--gold);display:grid;place-items:center;font-weight:800;font-size:20px;color:#5a3a00;box-shadow:inset 0 -3px 0 #c98f00;flex:none}
+.lv .info{flex:1}
+.lv .info b{display:block;font-size:15px;line-height:1.1}
+.xp{height:9px;border-radius:5px;background:#0001;overflow:hidden;margin-top:3px}
+.xp div{height:100%;background:linear-gradient(90deg,#7ccf3a,#4caf50);border-radius:5px;transition:width .4s}
+.coins{display:flex;align-items:center;gap:7px;background:var(--card);border-radius:22px;padding:8px 14px;box-shadow:0 3px 0 #0002;font-weight:800;font-size:19px;font-variant-numeric:tabular-nums;margin-left:auto}
+.coin{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe680,#f4b400 60%,#c98f00);box-shadow:inset 0 -2px 0 #a87400;flex:none;display:inline-block}
+.stage{position:relative;flex:1}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.bar{display:flex;gap:8px;padding:8px 10px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(#9ad86a00,#7cc04f 40%);z-index:3}
+.act{flex:1;min-height:58px;border:0;border-radius:18px;background:var(--card);box-shadow:0 4px 0 #0003;display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 8px;font-weight:800;font-size:15px;line-height:1.05;text-align:left}
+.act svg{width:30px;height:30px;flex:none}
+.act small{display:block;font-weight:700;font-size:12px;opacity:.65}
+.act.hot{background:var(--gold);box-shadow:0 4px 0 #b88400}
+.act.hide{display:none}
+.float{position:absolute;right:12px;bottom:14px;z-index:3;min-width:130px;flex:none}
+.bar .act{flex-direction:column;text-align:center;font-size:14px;gap:1px;padding:6px 2px;min-height:64px}.bar .act svg{width:28px;height:28px}.bar .act small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.bar .act span{max-width:100%}
+.order{background:#fff;border-radius:18px;padding:12px;box-shadow:0 3px 0 #0002;margin-bottom:10px}
+.order .who{font-weight:800;font-size:17px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.order .who>span{font-size:14px;font-weight:700;color:#2e7d32;white-space:nowrap}
+.need{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.need div{display:flex;align-items:center;gap:4px;background:#f5efe3;border-radius:12px;padding:3px 10px 3px 4px;font-weight:800;font-size:15px}
+.need div.ok{background:#dff3d6}
+.need svg{width:28px;height:28px}
+.order .btns{display:flex;gap:8px}.order .btns .btn{flex:1}
+.btn[disabled]{opacity:.45}
+.truckbar{background:#fff3c4;border-radius:14px;padding:10px 12px;margin-bottom:10px;font-weight:700}
+.act:focus-visible,.btn:focus-visible,.card-crop:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.toast{position:absolute;left:50%;bottom:86px;transform:translate(-50%,16px);background:var(--ink);color:#fff;padding:9px 16px;border-radius:14px;font-weight:700;opacity:0;transition:.25s;pointer-events:none;z-index:4;max-width:92%;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.sheet{position:fixed;inset:0;background:#3b241266;z-index:10;display:flex;align-items:flex-end;justify-content:center}
+.sheet.hide{display:none}
+.panel{background:var(--card);width:100%;max-width:520px;border-radius:26px 26px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:80vh;overflow:auto;box-shadow:0 -10px 30px #0003}
+.panel.center{border-radius:26px;margin:auto 16px;text-align:center}
+.panel h2{margin:0 0 4px;font-size:28px;line-height:1.1;font-weight:800}
+.panel p{margin:4px 0 10px;opacity:.75}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.card-crop{border:0;border-radius:18px;background:#fff;box-shadow:0 3px 0 #0002;padding:10px;text-align:left;display:flex;gap:10px;align-items:center;position:relative}
+.card-crop.on{background:#fff3c4;box-shadow:0 0 0 3px var(--gold)}
+.card-crop.lock{opacity:.5}
+.card-crop svg{width:46px;height:46px;flex:none}
+.card-crop b{display:block;font-size:17px;line-height:1.1}
+.card-crop span{display:block;font-size:13px;opacity:.7;line-height:1.25}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #3b24121a}
+.row svg{width:40px;height:40px;flex:none}
+.row .n{flex:1;font-weight:800;font-size:17px;line-height:1.1}
+.row .n span{display:block;font-weight:600;font-size:13px;opacity:.65}
+.btn{border:0;border-radius:14px;min-height:44px;padding:0 16px;font-weight:800;background:var(--leaf);color:#fff;box-shadow:0 3px 0 #2e7d32;white-space:nowrap}
+.btn.big{width:100%;min-height:52px;font-size:18px;margin-top:12px}
+.btn.alt{background:#efe6d6;color:var(--ink);box-shadow:0 3px 0 #d4c6ad}
+.btn.red{background:var(--red);box-shadow:0 3px 0 #a3332a}
+.empty{padding:24px 0;text-align:center;opacity:.6}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="c"></canvas>
+    <div class="top">
+      <div class="lv"><div class="badge" id="lvl">1</div><div class="info"><b>Fazenda Feliz</b><div class="xp"><div id="xpb"></div></div></div></div>
+      <div class="coins"><span class="coin"></span><span id="coins">0</span></div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <button class="act hot hide float" id="bAll"><svg viewBox="0 0 40 40"><path d="M6 17h28l-3 17H9z" fill="#c98a4a"/><path d="M6 17h28" stroke="#8a5a36" stroke-width="3"/><path d="M12 17c0-6 16-6 16 0" fill="none" stroke="#8a5a36" stroke-width="3"/><circle cx="15" cy="14" r="4" fill="#e0402f"/><circle cx="22" cy="12" r="4" fill="#f08a24"/><circle cx="27" cy="15" r="3.5" fill="#f4c430"/></svg><span>Colher<small>tudo</small></span></button>
+  </div>
+  <div class="bar">
+    <button class="act" id="bSeed"><svg id="seedIco" viewBox="0 0 40 40"></svg><span>Sementes<small id="seedName">Nabo</small></span></button>
+    <button class="act" id="bBarn"><svg viewBox="0 0 40 40"><path d="M5 18L20 7l15 11v17H5z" fill="#d9483b"/><path d="M5 18L20 7l15 11" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M14 35V24h12v11" fill="#fff"/><path d="M14 24l12 11M26 24L14 35" stroke="#d9483b" stroke-width="2"/></svg><span>Celeiro<small id="barnN">vazio</small></span></button>
+    <button class="act" id="bOrd"><svg viewBox="0 0 40 40"><rect x="3" y="12" width="20" height="16" rx="2" fill="#2f8fd1"/><path d="M23 17h8l6 6v5H23z" fill="#d9483b"/><rect x="26" y="19" width="5" height="4" fill="#cfeefe"/><circle cx="10" cy="30" r="4" fill="#333"/><circle cx="30" cy="30" r="4" fill="#333"/></svg><span>Pedidos<small id="ordN">3</small></span></button>
+    <button class="act" id="bShop"><svg viewBox="0 0 40 40"><path d="M6 16h28v20H6z" fill="#fff3e0"/><path d="M4 10h32l-2 8H6z" fill="#d9483b"/><path d="M10 10l-1 8M17 10v8M23 10v8M30 10l1 8" stroke="#fff" stroke-width="2.5"/><rect x="14" y="24" width="12" height="12" fill="#8a5a36"/></svg><span>Loja<small id="shopN">itens</small></span></button>
+  </div>
 </div>
+<div class="sheet hide" id="sheet"><div class="panel" id="panel"></div></div>
 <script>
-const crops=[{id:'wheat',name:'Trigo',emoji:'🌾',cost:5,price:12,time:12,xp:3},{id:'corn',name:'Milho',emoji:'🌽',cost:9,price:20,time:18,xp:5},{id:'carrot',name:'Cenoura',emoji:'🥕',cost:7,price:16,time:15,xp:4},{id:'strawberry',name:'Morango',emoji:'🍓',cost:14,price:32,time:25,xp:7}];
-let state=JSON.parse(localStorage.getItem('ff-save')||'null')||{coins:150,xp:0,level:1,plots:Array(8).fill(null),inventory:0,seed:'wheat',unlocked:8};
-const plots=document.getElementById('plots');
-function save(){localStorage.setItem('ff-save',JSON.stringify(state));renderStats()}
-function renderStats(){document.getElementById('coins').textContent=state.coins;document.getElementById('level').textContent=state.level}
-function render(){plots.innerHTML='';state.plots.forEach((p,i)=>{let el=document.createElement('div');let ready=p&&Date.now()>=p.ready;el.className='plot '+(!p?'empty':ready?'ready':'');el.textContent=!p?'':ready?crops.find(c=>c.id===p.crop).emoji:'🌱';el.title='Canteiro '+(i+1);el.onclick=()=>tapPlot(i);plots.appendChild(el)});renderStats()}
-function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;clearTimeout(window.tt);window.tt=setTimeout(()=>e.style.opacity=0,1800)}
-function tapPlot(i){let p=state.plots[i];if(!p){let c=crops.find(c=>c.id===state.seed);if(state.coins<c.cost)return toast('Moedas insuficientes!');state.coins-=c.cost;state.plots[i]={crop:c.id,ready:Date.now()+c.time*1000};toast(c.name+' plantado! 🌱');save();render();return}if(Date.now()<p.ready){let s=Math.ceil((p.ready-Date.now())/1000);toast('Crescendo... '+s+'s');return}let c=crops.find(c=>c.id===p.crop);state.plots[i]=null;state.inventory+=c.price;state.xp+=c.xp;if(state.xp>=state.level*35){state.xp=0;state.level++;toast('Subiu para o nível '+state.level+'! ⭐')}else toast(c.name+' colhido!');save();render()}
-function openPanel(title,html){document.getElementById('panelTitle').textContent=title;document.getElementById('panelBody').innerHTML=html;document.getElementById('panel').style.display='block'}
-function closePanel(){document.getElementById('panel').style.display='none'}
-function openShop(){openPanel('🛒 Loja de sementes','<div class="items">'+crops.map(c=>`<div class="item"><div style="font-size:25px">${c.emoji}</div><b>${c.name}</b><br>🪙 ${c.cost} · ${c.time}s<div><button onclick="buySeed('${c.id}')">Selecionar</button></div></div>`).join('')+'</div>')}
-function buySeed(id){state.seed=id;toast('Semente selecionada! Toque em um canteiro.');closePanel()}
-function selectSeed(){openShop()}
-function sellAll(){if(!state.inventory)return toast('Você ainda não tem produtos para vender!');state.coins+=state.inventory;toast('Venda realizada: +'+state.inventory+' moedas!');state.inventory=0;save()}
-function expand(){if(state.unlocked>=12)return toast('Todos os canteiros disponíveis!');if(state.coins<100)return toast('Precisa de 100 moedas para expandir.');state.coins-=100;state.unlocked+=4;for(let i=0;i<4;i++)state.plots.push(null);plots.style.gridTemplateColumns='repeat(4,90px)';toast('Novos canteiros desbloqueados!');save();render()}
-render();setInterval(render,1000);
-let startX=0;document.getElementById('scene').addEventListener('touchstart',e=>startX=e.touches[0].clientX,{passive:true});
-</script></body></html>
+{
+const $=id=>document.getElementById(id);
+const cv=$('c'),ctx=cv.getContext('2d'),stage=$('stage');
+const N=7,HW=32,HH=16;
+let W=0,H=0,DPR=1,z=1,ox=0,oy=0,panX=0,panY=0;
+function resize(){DPR=Math.min(2,devicePixelRatio||1);W=stage.clientWidth;H=stage.clientHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);fit()}
+function fit(){
+  z=Math.min(W*1.32/(N*2*HW),(H-150)/(N*2*HH+30));const cx=(3.9-3.9)*HW,cy=(3.9+3.9)*HH;ox=W/2-cx*z+panX;oy=H*.6-cy*z+panY}
+const ro=new ResizeObserver(resize);ro.observe(stage);resize();
+
+/* culturas: tipo de desenho, nível, semente, venda por unidade, quantidade, tempo (s), xp, safras */
+const CR=[
+  {n:'Nabo',k:'root',lv:1,seed:5,sell:3,q:4,t:40,xp:2,c:'#f3eef6',c2:'#b05cc0',s:1},
+  {n:'Cenoura',k:'root',lv:1,seed:8,sell:4,q:5,t:90,xp:3,c:'#f08a24',c2:'#f08a24',s:1},
+  {n:'Milho',k:'stalk',lv:2,seed:15,sell:6,q:6,t:180,xp:5,c:'#f4c430',s:1},
+  {n:'Tomate',k:'bush',lv:3,seed:25,sell:5,q:9,t:300,xp:8,c:'#e0402f',s:2},
+  {n:'Abóbora',k:'ground',lv:4,seed:40,sell:16,q:5,t:480,xp:12,c:'#ee8a1c',s:1},
+  {n:'Morango',k:'bush',lv:5,seed:60,sell:8,q:14,t:720,xp:16,c:'#e5304f',s:2},
+  {n:'Melancia',k:'ground',lv:7,seed:100,sell:34,q:6,t:1200,xp:25,c:'#3f9a4a',s:1},
+  {n:'Girassol',k:'flower',lv:9,seed:150,sell:28,q:10,t:1800,xp:35,c:'#f4c430',s:2},
+];
+const xpNeed=l=>Math.round(30*Math.pow(l,1.55));
+const fmtT=s=>{s=Math.max(0,Math.ceil(s));return s>=3600?Math.floor(s/3600)+'h'+String(Math.floor(s%3600/60)).padStart(2,'0'):s>=60?Math.floor(s/60)+'min'+(s%60?' '+s%60+'s':''):s+'s'};
+const fmt=n=>Math.round(n).toLocaleString('pt-BR');
+
+/* canteiros: 4×4 no meio do sítio, liberados por ordem de proximidade */
+const PL=[];for(let a=0;a<4;a++)for(let b=0;b<4;b++)PL.push({i:2+a,j:2+b});
+const ORDER=PL.map((p,ix)=>ix).sort((x,y)=>(PL[x].i+PL[x].j)-(PL[y].i+PL[y].j)||PL[x].i-PL[y].i);
+const plotPrice=n=>Math.round(120*Math.pow(1.55,n-6)/10)*10;
+const plotLv=n=>2+Math.floor((n-6)*0.8);
+
+let S,mode=null;
+function fresh(){return{coins:120,xp:0,lv:1,sel:0,barn:{},owned:6,plots:PL.map(()=>({s:'empty',c:0,t0:0,sea:1,w:0,b:0,d:false})),gift:'',orders:[],truck:null,it:{adubo:0,turbo:false,scare:false,sprink:false}}}
+function save(){try{localStorage.setItem('fazenda-feliz',JSON.stringify(S))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem('fazenda-feliz'));if(s&&s.plots&&s.plots.length===16)return s}catch(e){}return null}
+const wasNew=!load();S=load()||fresh();S.orders=S.orders||[];S.it=S.it||{adubo:0};if(S.truck===undefined)S.truck=null;
+const unlocked=ix=>ORDER.indexOf(ix)<S.owned;
+
+/* estado de cada canteiro */
+function frac(p){return Math.min(1,(Date.now()-p.t0)/(CR[p.c].t*1000))}
+function stage_(p){const f=frac(p);return f>=1?4:f<.15?0:f<.4?1:f<.7?2:3}
+const issues=p=>p.w+p.b+(p.d?1:0);
+
+let fx=[];
+function floatTxt(ix,txt,col){const p=PL[ix],q=P(p.i+.5,p.j+.5,30);fx.push({x:q[0],y:q[1],txt,col,t:0})}
+function gainXp(n,ix){S.xp+=n;if(ix!=null)floatTxt(ix,'+'+n+' xp','#2e7d32');
+  while(S.xp>=xpNeed(S.lv)){S.xp-=xpNeed(S.lv);S.lv++;const nw=CR.filter(c=>c.lv===S.lv).map(c=>c.n);const bonus=S.lv*20;S.coins+=bonus;
+    setTimeout(()=>modal(`<h2>Nível ${S.lv}!</h2><p>Você ganhou ${bonus} moedas de presente.</p>${nw.length?`<p><b>Nova semente liberada:</b> ${nw.join(', ')}</p>`:''}${S.owned<16&&plotLv(S.owned)<=S.lv?'<p>Você já pode comprar um novo canteiro.</p>':''}<button class="btn big" id="ok">Oba!</button>`),300)}
+  hud()}
+
+function tapPlot(ix){
+  const p=S.plots[ix];
+  if(!unlocked(ix)){
+    if(ORDER.indexOf(ix)!==S.owned){toast('Compre primeiro os canteiros mais próximos da casa');return}
+    const pr=plotPrice(S.owned),need=plotLv(S.owned);
+    modal(`<h2>Novo canteiro</h2><p>Mais espaço para plantar e lucrar.</p><p><b>${fmt(pr)} moedas</b> · nível ${need} ou mais</p><button class="btn big" id="buy" ${S.lv<need||S.coins<pr?'disabled style="opacity:.5"':''}>${S.lv<need?'Precisa do nível '+need:S.coins<pr?'Moedas insuficientes':'Comprar'}</button><button class="btn big alt" id="ok">Agora não</button>`);
+    const b=$('buy');if(b)b.onclick=()=>{if(S.lv<need||S.coins<pr)return;S.coins-=pr;S.owned++;closeSheet();toast('Canteiro novo! Hora de plantar.');floatTxt(ix,'Novo!','#d9483b');hud();save()};
+    return}
+  if(mode==='adubo'){
+    if(p.s!=='grow'||frac(p)>=1){toast('O adubo é para canteiros que ainda estão crescendo');return}
+    const c=CR[p.c];p.t0-=c.t*1000*.4;S.it.adubo--;pop(ix,'#7ccf3a',12);floatTxt(ix,'Adubado!','#2e7d32');
+    if(S.it.adubo<=0){mode=null;toast('Seu adubo acabou')}hud();save();return}
+  if(p.s==='empty'){
+    const c=CR[S.sel];
+    if(S.lv<c.lv){toast(`${c.n} libera no nível ${c.lv}`);return}
+    if(S.coins<c.seed){toast('Moedas insuficientes. Venda sua colheita no celeiro.');return}
+    S.coins-=c.seed;Object.assign(p,{s:'grow',c:S.sel,t0:Date.now(),sea:1,w:0,b:0,d:false});
+    floatTxt(ix,'-'+c.seed,'#a3332a');pop(ix,'#8a5a36');gainXp(1);hud();save();return}
+  if(p.s==='dead'){p.s='empty';pop(ix,'#c9a36a');floatTxt(ix,'Limpo!','#8a5a36');gainXp(1,ix);save();return}
+  if(p.s==='grow'){
+    if(p.b>0){p.b--;S.coins+=2;pop(ix,'#333');floatTxt(ix,'Bichinho fora! +2','#2e7d32');gainXp(2);save();return}
+    if(p.w>0){p.w--;S.coins+=2;pop(ix,'#4caf50');floatTxt(ix,'Mato arrancado! +2','#2e7d32');gainXp(2);save();return}
+    if(p.d){p.d=false;S.coins+=1;pop(ix,'#4fa9d8');floatTxt(ix,'Regado! +1','#1d78b5');gainXp(1);save();return}
+    const c=CR[p.c];
+    if(frac(p)>=1){harvest(ix);return}
+    toast(`${c.n}${c.s>1?' · '+p.sea+'ª safra':''} · pronta em ${fmtT(c.t*(1-frac(p)))}`);
+  }
+}
+function harvest(ix,quiet){
+  const p=S.plots[ix],c=CR[p.c];
+  const n=Math.max(Math.ceil(c.q/2),c.q-issues(p)*2);
+  S.barn[p.c]=(S.barn[p.c]||0)+n;
+  floatTxt(ix,`+${n} ${c.n}`,'#d9483b');pop(ix,c.c,14);
+  if(p.sea<c.s){p.sea++;p.t0=Date.now()-c.t*1000*.45;p.w=p.b=0;p.d=false}else p.s='dead';
+  gainXp(c.xp,quiet?null:ix);save();hud();
+}
+
+/* pedidos e caminhão */
+const WHO=['Dona Cida','Seu Jorge','Padaria da Vila','Mercadinho Bom Preço','Restaurante Sabor da Roça','Tia Lurdes','Feira de Domingo','Lanchonete do Zé','Vó Benedita','Quitanda da Praça'];
+function newOrder(){
+  const av=CR.map((c,ix)=>ix).filter(ix=>CR[ix].lv<=S.lv);
+  const k=Math.min(av.length,1+Math.floor(Math.random()*Math.min(3,1+S.lv/2)));
+  const pick=[...av].sort(()=>Math.random()-.5).slice(0,k);const items={};let val=0;
+  for(const ix of pick){const c=CR[ix],q=Math.max(2,Math.round(c.q*(.5+Math.random())));items[ix]=q;val+=q*c.sell}
+  return{who:WHO[Math.floor(Math.random()*WHO.length)],items,coins:Math.round(val*1.7/5)*5,xp:Math.max(3,Math.round(val*.35))};
+}
+const canFill=o=>Object.entries(o.items).every(([k,q])=>(S.barn[k]||0)>=q);
+while(S.orders.length<3)S.orders.push(newOrder());
+const tripMs=()=>(S.it.turbo?12:25)*1000;
+function deliver(n){
+  const o=S.orders[n];if(S.truck){toast('O caminhão ainda está na estrada');return}
+  if(!canFill(o)){toast('Falta produto no celeiro para este pedido');return}
+  for(const [k,q] of Object.entries(o.items))S.barn[k]-=q;
+  S.truck={start:Date.now(),dur:tripMs(),coins:o.coins,xp:o.xp,who:o.who};
+  S.orders[n]=newOrder();save();hud();closeSheet();toast(`Caminhão saiu para entregar a ${o.who}!`);
+}
+function truckState(){
+  if(!S.truck)return{off:0,shown:true};
+  const e=Date.now()-S.truck.start,d=S.truck.dur;
+  if(e>=d){const tr=S.truck;S.truck=null;S.coins+=tr.coins;gainXp(tr.xp);save();hud();
+    toast(`Entrega feita para ${tr.who}! +${fmt(tr.coins)} moedas`,3200);return{off:0,shown:true}}
+  if(e<2000)return{off:Math.pow(e/2000,2)*9,shown:true};
+  if(e>d-2000)return{off:((d-e)/2000)*9,shown:true};
+  return{off:9,shown:false};
+}
+/* loja */
+const SHOP=[
+  {id:'adubo',n:'Adubo',d:'Faz uma plantação crescer 40% na hora.',p:30,lv:1},
+  {id:'scare',n:'Espantalho',d:'Fica na fazenda e espanta a maior parte dos bichinhos.',p:350,lv:3},
+  {id:'turbo',n:'Motor turbo',d:'O caminhão faz as entregas na metade do tempo.',p:600,lv:4},
+  {id:'sprink',n:'Irrigação automática',d:'A terra nunca mais fica seca.',p:900,lv:6},
+];
+function shopIcon(id){return{
+  adubo:'<path d="M10 12h20l-2 24H12z" fill="#8a5a36"/><path d="M10 12h20v6H10z" fill="#6e4527"/><circle cx="20" cy="26" r="5" fill="#7ccf3a"/><path d="M20 21c0-4 4-7 6-7-1 4-3 6-6 7z" fill="#4caf50"/>',
+  scare:'<path d="M20 12v26M10 20h20" stroke="#8a5a36" stroke-width="3"/><circle cx="20" cy="10" r="6" fill="#f2d9a8"/><path d="M12 6h16l-3-4h-10z" fill="#c98a4a"/><path d="M13 18h14l-2 12H15z" fill="#d9483b"/>',
+  turbo:'<rect x="3" y="12" width="20" height="16" rx="2" fill="#2f8fd1"/><path d="M23 17h8l6 6v5H23z" fill="#d9483b"/><circle cx="10" cy="30" r="4" fill="#333"/><circle cx="30" cy="30" r="4" fill="#333"/><path d="M2 8h8M0 14h6" stroke="#f4b400" stroke-width="3" stroke-linecap="round"/>',
+  sprink:'<path d="M20 8c6 8 9 13 9 18a9 9 0 0 1-18 0c0-5 3-10 9-18z" fill="#3d9be0"/><path d="M16 26a4 4 0 0 0 4 4" stroke="#fff" stroke-width="2.5" fill="none"/>'}[id]}
+function shop(){
+  sheet(`<h2>Loja</h2><p>Melhore a fazenda e ganhe mais com cada colheita.</p>${SHOP.map(it=>{const own=it.id!=='adubo'&&S.it[it.id],lk=S.lv<it.lv;
+    return`<div class="row"><svg viewBox="0 0 40 40">${shopIcon(it.id)}</svg><div class="n">${it.n}${it.id==='adubo'&&S.it.adubo?' · você tem '+S.it.adubo:''}<span>${it.d}</span></div>${own?'<button class="btn alt" disabled>Comprado</button>':lk?`<button class="btn alt" disabled>Nível ${it.lv}</button>`:`<button class="btn" data-b="${it.id}">${it.p} moedas</button>`}</div>`}).join('')}
+    ${S.it.adubo?'<button class="btn big" id="use">Usar adubo agora</button>':''}<button class="btn big alt" id="cl">Fechar</button>`);
+  $('cl').onclick=closeSheet;
+  const u=$('use');if(u)u.onclick=()=>{mode='adubo';closeSheet();toast('Toque num canteiro em crescimento para adubar',3000)};
+  $('panel').querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{const it=SHOP.find(x=>x.id===b.dataset.b);
+    if(S.coins<it.p){toast('Moedas insuficientes');return}S.coins-=it.p;
+    if(it.id==='adubo')S.it.adubo=(S.it.adubo||0)+1;else S.it[it.id]=true;
+    toast(it.id==='adubo'?'Adubo comprado':`${it.n} instalado!`);hud();save();shop()});
+}
+function orders(){
+  sheet(`<h2>Pedidos</h2><p>Os clientes da cidade pagam bem mais que o celeiro. O caminhão leva a encomenda.</p>
+    ${S.truck?`<div class="truckbar">Caminhão na estrada · volta em ${fmtT((S.truck.start+S.truck.dur-Date.now())/1000)} com ${fmt(S.truck.coins)} moedas</div>`:''}
+    ${S.orders.map((o,n)=>`<div class="order"><div class="who">${o.who}<span><span class="coin" style="width:16px;height:16px;vertical-align:-2px"></span> ${fmt(o.coins)} · +${o.xp} xp</span></div>
+      <div class="need">${Object.entries(o.items).map(([k,q])=>`<div class="${(S.barn[k]||0)>=q?'ok':''}"><svg viewBox="0 0 40 40">${cropIcon(CR[k])}</svg>${Math.min(S.barn[k]||0,q)}/${q}</div>`).join('')}</div>
+      <div class="btns"><button class="btn" data-d="${n}" ${!canFill(o)||S.truck?'disabled':''}>Entregar</button><button class="btn alt" data-x="${n}">Trocar pedido</button></div></div>`).join('')}
+    <button class="btn big alt" id="cl">Fechar</button>`);
+  $('cl').onclick=closeSheet;
+  $('panel').querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>deliver(+b.dataset.d));
+  $('panel').querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{S.orders[+b.dataset.x]=newOrder();save();orders()});
+}
+
+/* problemas aparecem enquanto você joga */
+setInterval(()=>{for(let ix=0;ix<16;ix++){const p=S.plots[ix];if(p.s!=='grow'||frac(p)>=1||Math.random()>.1)continue;
+  const r=Math.random();if(r<.4&&p.w<2)p.w++;else if(r<.75){if(p.b<2&&!(S.it.scare&&Math.random()<.6))p.b++}else if(!S.it.sprink)p.d=true}},12000);
+
+/* desenho */
+const P=(i,j,h=0)=>[ox+(i-j)*HW*z,oy+(i+j)*HH*z-h*z];
+function poly(pts,fill){ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let n=1;n<pts.length;n++)ctx.lineTo(pts[n][0],pts[n][1]);ctx.closePath();ctx.fillStyle=fill;ctx.fill()}
+function boxR(i0,j0,i1,j1,h,top,left,right,base=0){
+  const a=P(i0,j0,base+h),b=P(i1,j0,base+h),c=P(i1,j1,base+h),d=P(i0,j1,base+h);
+  poly([b,c,P(i1,j1,base),P(i1,j0,base)],right);poly([d,c,P(i1,j1,base),P(i0,j1,base)],left);if(top)poly([a,b,c,d],top)}
+function gable(i0,j0,i1,j1,h,rh,c1,c2){const m=(j0+j1)/2,a=P(i0,m,h+rh),b=P(i1,m,h+rh);
+  poly([P(i0,j0,h),P(i1,j0,h),b,a],c2);poly([P(i0,j1,h),P(i1,j1,h),b,a],c1);poly([P(i1,j0,h),P(i1,j1,h),b],'#f3e3c4')}
+const circ=(x,y,r,col)=>{ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()};
+const ell=(x,y,rx,ry,col,rot=0)=>{ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(x,y,rx,ry,rot,0,7);ctx.fill()};
+function leaf(x,y,len,ang,col){ctx.save();ctx.translate(x,y);ctx.rotate(ang);ell(0,-len/2,len*.28,len/2,col);ctx.restore()}
+function tree(x,y,s){ell(x,y,26*s*z,12*s*z,'#00000022');ctx.fillStyle='#7a5230';ctx.fillRect(x-4*s*z,y-34*s*z,8*s*z,34*s*z);
+  [[0,-58,26,'#3f8f3a'],[-18,-44,20,'#4a9c40'],[18,-44,20,'#4a9c40'],[0,-40,22,'#56ab46'],[-6,-64,14,'#6bbf55']].forEach(([dx,dy,r,c])=>circ(x+dx*s*z,y+dy*s*z,r*s*z,c));
+  [[-10,-50],[12,-38],[4,-62]].forEach(([dx,dy])=>circ(x+dx*s*z,y+dy*s*z,4*s*z,'#e0402f'))}
+
+function plant(x,y,c,st,t,ripeB){
+  const s=z*[.35,.55,.8,1,1][st],g='#4caf50',g2='#3d9443';
+  if(st===0){circ(x,y,2.2*z,'#5a3a20');circ(x-4*z,y+1*z,1.8*z,'#5a3a20');return}
+  if(c.k==='root'){leaf(x,y,14*s,-.5,g2);leaf(x,y,16*s,.1,g);leaf(x,y,13*s,.6,g2);
+    if(st>=3){ell(x,y+1*z,5*s,4*s,c.c);if(c.c2!==c.c)ell(x,y-1*z,5*s,2*s,c.c2)}}
+  else if(c.k==='stalk'){ctx.strokeStyle=g2;ctx.lineWidth=2.4*s;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-30*s);ctx.stroke();
+    leaf(x,y-10*s,14*s,-.9,g);leaf(x,y-16*s,14*s,.9,g);leaf(x,y-24*s,11*s,-.7,g2);
+    if(st>=3){ell(x+4*s,y-18*s,3.2*s,7*s,st===4?c.c:'#cfe28a',.3);ctx.strokeStyle='#e8d48a';ctx.lineWidth=1*z;ctx.beginPath();ctx.moveTo(x,y-30*s);ctx.lineTo(x-3*s,y-36*s);ctx.moveTo(x,y-30*s);ctx.lineTo(x+3*s,y-36*s);ctx.stroke()}}
+  else if(c.k==='bush'){[[-6,-6,8],[6,-6,8],[0,-12,9],[0,-4,8]].forEach(([dx,dy,r],n)=>circ(x+dx*s,y+dy*s,r*s,n%2?g:g2));
+    if(st===3)[[-5,-9],[5,-7],[0,-15]].forEach(([dx,dy])=>circ(x+dx*s,y+dy*s,1.8*s,'#fff'));
+    if(st===4)[[-6,-8],[6,-6],[0,-15],[2,-4],[-3,-12]].forEach(([dx,dy])=>{circ(x+dx*s,y+dy*s+ripeB,3.4*s,c.c);circ(x+dx*s-1*s,y+dy*s-1*s+ripeB,1*s,'#ffffff88')})}
+  else if(c.k==='ground'){ctx.strokeStyle=g2;ctx.lineWidth=1.6*z;ctx.beginPath();ctx.moveTo(x-12*s,y);ctx.quadraticCurveTo(x,y-6*s,x+12*s,y+2*s);ctx.stroke();
+    leaf(x-8*s,y,10*s,-1.2,g);leaf(x+6*s,y,10*s,1.1,g2);leaf(x,y-2*s,9*s,0,g);
+    if(st>=3){const r=st===4?9:5;ell(x+2*s,y-r*.5*s+ripeB,r*1.15*s,r*.85*s,c.c);
+      if(c.n==='Melancia'){ctx.strokeStyle='#2a6b31';ctx.lineWidth=1.4*z;for(const d of[-.5,0,.5]){ctx.beginPath();ctx.ellipse(x+2*s+d*r*s,y-r*.5*s+ripeB,r*.25*s,r*.8*s,0,0,7);ctx.stroke()}}
+      else{ctx.strokeStyle='#c96a10';ctx.lineWidth=1.2*z;ctx.beginPath();ctx.ellipse(x+2*s,y-r*.5*s+ripeB,r*.45*s,r*.85*s,0,0,7);ctx.stroke();ctx.fillStyle='#5a7a2a';ctx.fillRect(x+1*s,y-r*1.35*s+ripeB,2*s,3*s)}}}
+  else{ctx.strokeStyle=g2;ctx.lineWidth=2.4*s;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-34*s);ctx.stroke();leaf(x,y-12*s,12*s,-1,g);leaf(x,y-18*s,12*s,1,g);
+    if(st>=3){const r=st===4?8:4,cy=y-36*s+ripeB;for(let a=0;a<12;a++){const an=a/12*Math.PI*2+t*.2;ell(x+Math.cos(an)*r*s,cy+Math.sin(an)*r*s,3.4*s,1.6*s,c.c,an)}circ(x,cy,r*.75*s,'#6b3e1e')}}
+}
+function bubble(x,y,kind,t){
+  const b=Math.sin(t*4)*2*z;ell(x,y+b,13*z,13*z,'#fff');poly([[x-4*z,y+10*z+b],[x+4*z,y+10*z+b],[x,y+17*z+b]],'#fff');
+  if(kind==='d'){ctx.fillStyle='#3d9be0';ctx.beginPath();ctx.moveTo(x,y-8*z+b);ctx.quadraticCurveTo(x+7*z,y+1*z+b,x,y+6*z+b);ctx.quadraticCurveTo(x-7*z,y+1*z+b,x,y-8*z+b);ctx.fill()}
+  if(kind==='b'){circ(x,y+1*z+b,6*z,'#d9483b');ctx.fillStyle='#222';ctx.fillRect(x-.6*z,y-5*z+b,1.2*z,12*z);circ(x,y-5*z+b,3*z,'#222');circ(x-2.5*z,y+b,1.3*z,'#222');circ(x+2.5*z,y+3*z+b,1.3*z,'#222')}
+  if(kind==='w'){ctx.strokeStyle='#3d7a2a';ctx.lineWidth=2.2*z;ctx.lineCap='round';for(const a of[-.6,-.2,.2,.6]){ctx.beginPath();ctx.moveTo(x,y+6*z+b);ctx.lineTo(x+Math.sin(a)*10*z,y-6*z+b);ctx.stroke()}ctx.lineCap='butt'}
+  if(kind==='r'){ctx.fillStyle='#f4b400';ctx.beginPath();for(let a=0;a<10;a++){const r=a%2?3.5*z:8*z,an=a/10*Math.PI*2-Math.PI/2;ctx.lineTo(x+Math.cos(an)*r,y+Math.sin(an)*r+b)}ctx.fill()}
+}
+function drawPlot(ix,t){
+  const pl=PL[ix],p=S.plots[ix],i=pl.i,j=pl.j;
+  if(!unlocked(ix)){
+    const next=ORDER.indexOf(ix)===S.owned;
+    if(next){ctx.setLineDash([5*z,4*z]);ctx.strokeStyle='#ffffffcc';ctx.lineWidth=2*z;const q=[P(i+.1,j+.1),P(i+.9,j+.1),P(i+.9,j+.9),P(i+.1,j+.9)];ctx.beginPath();ctx.moveTo(...q[0]);q.slice(1).forEach(v=>ctx.lineTo(...v));ctx.closePath();ctx.stroke();ctx.setLineDash([]);
+      const c=P(i+.5,j+.5);circ(c[0],c[1],10*z,'#fff');ctx.fillStyle='#4caf50';ctx.fillRect(c[0]-6*z,c[1]-1.6*z,12*z,3.2*z);ctx.fillRect(c[0]-1.6*z,c[1]-6*z,3.2*z,12*z)}
+    return}
+  const dry=p.s==='grow'&&p.d;
+  boxR(i+.06,j+.06,i+.94,j+.94,5,dry?'#b88c5e':'#8a5a36','#6e4527','#5c3a20');
+  ctx.strokeStyle=dry?'#a37a4f':'#744a2b';ctx.lineWidth=2*z;
+  for(let r=1;r<4;r++){const a=P(i+.12,j+r*.25,5),b=P(i+.88,j+r*.25,5);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
+  if(dry){ctx.strokeStyle='#8e6a43';ctx.lineWidth=1*z;const a=P(i+.3,j+.3,5),b=P(i+.5,j+.45,5),c=P(i+.45,j+.7,5);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...c);ctx.stroke()}
+  if(p.s==='dead'){for(const [a,b] of[[.3,.3],[.7,.35],[.35,.7],[.7,.7]]){const q=P(i+a,j+b,5);ctx.strokeStyle='#9c7a4a';ctx.lineWidth=1.8*z;ctx.beginPath();ctx.moveTo(q[0],q[1]);ctx.lineTo(q[0]-3*z,q[1]-10*z);ctx.moveTo(q[0],q[1]);ctx.lineTo(q[0]+4*z,q[1]-8*z);ctx.stroke()}return}
+  if(p.s!=='grow')return;
+  const c=CR[p.c],st=stage_(p),rb=st===4?-Math.abs(Math.sin(t*3+ix))*2*z:0;
+  for(const [a,b] of[[.3,.3],[.7,.3],[.3,.7],[.7,.7]]){const q=P(i+a,j+b,5);plant(q[0],q[1],c,st,t,rb)}
+  for(let n=0;n<p.w;n++){const q=P(i+.15+n*.6,j+.8,5);ctx.strokeStyle='#2f6b22';ctx.lineWidth=1.6*z;for(const a of[-.5,0,.5]){ctx.beginPath();ctx.moveTo(q[0],q[1]);ctx.lineTo(q[0]+Math.sin(a+Math.sin(t*2)*.1)*7*z,q[1]-9*z);ctx.stroke()}}
+  for(let n=0;n<p.b;n++){const q=P(i+.5+Math.sin(t*.8+n*3)*.25,j+.5+Math.cos(t*.6+n*2)*.25,6);circ(q[0],q[1],3*z,'#d9483b');circ(q[0]-2*z,q[1]-1*z,1.6*z,'#222')}
+  const top=P(i+.5,j+.5,st>=3?48:34);
+  if(p.b)bubble(top[0],top[1],'b',t);else if(p.w)bubble(top[0],top[1],'w',t);else if(p.d)bubble(top[0],top[1],'d',t);else if(st===4)bubble(top[0],top[1],'r',t);
+  else{const q=P(i+.5,j+.98,0),w=30*z;ctx.fillStyle='#00000040';ctx.fillRect(q[0]-w/2,q[1]+3*z,w,5*z);ctx.fillStyle='#ffd34d';ctx.fillRect(q[0]-w/2,q[1]+3*z,w*frac(p),5*z)}
+}
+function fence(){
+  const post=(i,j)=>{const a=P(i,j),b=P(i,j,16);ctx.strokeStyle='#8a5a36';ctx.lineWidth=3.5*z;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()};
+  const rail=(i0,j0,i1,j1)=>{for(const h of[7,13]){const a=P(i0,j0,h),b=P(i1,j1,h);ctx.strokeStyle='#b07a48';ctx.lineWidth=2.4*z;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}};
+  return{post,rail}}
+let pops=[];function pop(ix,col,n=8){const pl=PL[ix],c=P(pl.i+.5,pl.j+.5,10);for(let k=0;k<n;k++){const a=Math.random()*7;pops.push({x:c[0],y:c[1],vx:Math.cos(a)*60,vy:-Math.random()*120-40,col,t:0})}}
+const clouds=[{x:.1,y:.06,s:1},{x:.6,y:.12,s:.8},{x:1.1,y:.04,s:1.1}];
+function draw(t,dt){
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#7cc8f0');g.addColorStop(.3,'#bfe6f7');g.addColorStop(.32,'#a9de78');g.addColorStop(1,'#8ccf5c');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  circ(W*.85,H*.07,28,'#fff3b0');circ(W*.85,H*.07,20,'#ffe066');
+  for(const c of clouds){c.x+=dt*.01*c.s;if(c.x>1.3)c.x=-.3;const x=c.x*W,y=c.y*H+20;[[0,0,18],[18,-6,22],[38,0,16],[18,6,16]].forEach(([dx,dy,r])=>circ(x+dx*c.s,y+dy*c.s,r*c.s,'#ffffffe6'))}
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++)poly([P(i,j),P(i+1,j),P(i+1,j+1),P(i,j+1)],(i+j)%2?'#9ad86a':'#93d163');
+  poly([P(N,0),P(N,N),P(N,N,-14),P(N,0,-14)],'#7a5230');poly([P(0,N),P(N,N),P(N,N,-14),P(0,N,-14)],'#946238');
+  /* caminho de terra até os canteiros */
+  for(let j=2;j<6;j++)poly([P(1.25,j),P(1.85,j),P(1.85,j+1),P(1.25,j+1)],'#d9b98a');
+  /* lago */
+  const lc=P(6.1,6.1);ell(lc[0],lc[1],34*z,16*z,'#5fb8e6');ell(lc[0]-6*z,lc[1]-3*z,16*z,6*z,'#a6dcf5');
+  const f=fence();
+  /* fundo da cerca */
+  for(let k=0;k<=N;k++){f.post(k,0);f.post(0,k)}f.rail(0,0,N,0);f.rail(0,0,0,N);
+  /* estrada e caminhão */
+  for(let j=2;j<N+6;j++)poly([P(-.95,j),P(-.05,j),P(-.05,j+1),P(-.95,j+1)],'#c9a36a');
+  const ts=truckState();
+  if(ts.shown){const j0=2.4+ts.off,i0=-.85,i1=-.15;
+    boxR(i0,j0,i1,j0+.62,15,'#3a9be0','#2f8fd1','#2373aa',5);
+    boxR(i0+.04,j0+.64,i1-.04,j0+1.0,12,'#e86a5a','#d9483b','#b83a2e',5);
+    poly([P(i0+.08,j0+1.0,10),P(i1-.08,j0+1.0,10),P(i1-.08,j0+1.0,15),P(i0+.08,j0+1.0,15)],'#cfeefe');
+    for(const jj of[j0+.15,j0+.85]){const w=P(i1,jj,4);ell(w[0],w[1],4.5*z,5*z,'#2b2b2b');ell(w[0],w[1],2*z,2.2*z,'#999')}
+    if(S.truck){const q=P(-.5,j0+.3,20);[[0,0,'#e0402f'],[6,-2,'#f08a24'],[-6,-1,'#f4c430']].forEach(([dx,dy,c])=>circ(q[0]+dx*z,q[1]+dy*z,4*z,c))}}
+  if(S.it.scare){const q=P(6.4,3.4),sw=Math.sin(t*1.5)*.06;ctx.save();ctx.translate(q[0],q[1]);ctx.rotate(sw);
+    ctx.strokeStyle='#8a5a36';ctx.lineWidth=3*z;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-40*z);ctx.moveTo(-14*z,-28*z);ctx.lineTo(14*z,-28*z);ctx.stroke();
+    poly([[-9*z,-30*z],[9*z,-30*z],[7*z,-14*z],[-7*z,-14*z]],'#d9483b');circ(0,-42*z,7*z,'#f2d9a8');poly([[-11*z,-46*z],[11*z,-46*z],[5*z,-54*z],[-5*z,-54*z]],'#c98a4a');ctx.restore()}
+  if(S.it.sprink){const h=P(4,1.6,14),q=P(4,1.6);ctx.strokeStyle='#888';ctx.lineWidth=2*z;ctx.beginPath();ctx.moveTo(q[0],q[1]);ctx.lineTo(h[0],h[1]);ctx.stroke();
+    for(let n=0;n<6;n++){const a=t*2+n;circ(h[0]+Math.cos(a)*14*z,h[1]+Math.sin(a)*5*z,1.8*z,'#7cc8f0')}}
+  /* casa */
+  boxR(.35,.35,1.75,1.75,26,null,'#f6ead2','#e3d1b0');
+  poly([P(.85,1.75,0),P(1.25,1.75,0),P(1.25,1.75,16),P(.85,1.75,16)],'#8a4a2a');
+  poly([P(1.75,.6,8),P(1.75,1.1,8),P(1.75,1.1,18),P(1.75,.6,18)],'#9fd3f0');
+  poly([P(1.75,1.3,8),P(1.75,1.6,8),P(1.75,1.6,18),P(1.75,1.3,18)],'#9fd3f0');
+  gable(.25,.25,1.85,1.85,26,20,'#d9483b','#b83a2e');
+  const ch=P(.7,.6,40);ctx.fillStyle='#9c6b45';ctx.fillRect(ch[0]-4*z,ch[1]-8*z,8*z,14*z);
+  for(let n=0;n<3;n++){const ph=(t*.35+n/3)%1;circ(ch[0]+ph*8*z,ch[1]-12*z-ph*26*z,(3+ph*6)*z,`rgba(255,255,255,${.7*(1-ph)})`)}
+  /* árvore e casinha do cachorro */
+  const tp=P(6.2,.8);tree(tp[0],tp[1],1.1);
+  boxR(.4,5.3,1.1,6.0,10,null,'#c9874a','#a86d38');gable(.35,5.25,1.15,6.05,10,8,'#d9483b','#b83a2e');
+  const dg=P(1.3,6.2),wag=Math.sin(t*10)*.4;ell(dg[0],dg[1],9*z,5*z,'#f2d9a8');circ(dg[0]+7*z,dg[1]-5*z,5*z,'#f2d9a8');circ(dg[0]+9*z,dg[1]-6*z,1.2*z,'#222');ell(dg[0]+5*z,dg[1]-9*z,2*z,3.5*z,'#c89b5e',-.4);
+  ctx.strokeStyle='#f2d9a8';ctx.lineWidth=2.5*z;ctx.beginPath();ctx.moveTo(dg[0]-8*z,dg[1]-1*z);ctx.lineTo(dg[0]-13*z,dg[1]-7*z+wag*6*z);ctx.stroke();
+  /* fardo de feno */
+  boxR(5.5,.2,6.1,.6,8,'#f0d27a','#e0bb55','#c9a23f');
+  /* canteiros em ordem de profundidade */
+  const ord=[...PL.keys()].sort((a,b)=>(PL[a].i+PL[a].j)-(PL[b].i+PL[b].j));
+  for(const ix of ord)drawPlot(ix,t);
+  /* cerca da frente */
+  for(let k=0;k<=N;k++){f.post(N,k);f.post(k,N)}f.rail(N,0,N,N);f.rail(0,N,N,N);
+  for(const q of pops){q.t+=dt;q.vy+=260*dt;q.x+=q.vx*dt;q.y+=q.vy*dt;ctx.globalAlpha=Math.max(0,1-q.t*1.4);circ(q.x,q.y,3*z,q.col)}ctx.globalAlpha=1;pops=pops.filter(q=>q.t<.8);
+  ctx.textAlign='center';ctx.font=`800 ${Math.round(15*Math.max(.8,z))}px "Baloo 2",sans-serif`;
+  for(const e of fx){e.t+=dt;const a=Math.max(0,1-e.t/1.3);ctx.globalAlpha=a;ctx.lineWidth=4;ctx.strokeStyle='#fff';ctx.strokeText(e.txt,e.x,e.y-e.t*40);ctx.fillStyle=e.col;ctx.fillText(e.txt,e.x,e.y-e.t*40)}
+  ctx.globalAlpha=1;fx=fx.filter(e=>e.t<1.3);
+}
+
+/* toque */
+function pick(x,y){const a=(x-ox)/(HW*z),b=(y-oy+5*z)/(HH*z),i=Math.floor((a+b)/2),j=Math.floor((b-a)/2);return PL.findIndex(p=>p.i===i&&p.j===j)}
+let down=null;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);down={x:e.clientX,y:e.clientY,px:panX,py:panY,moved:false}});
+cv.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-down.x,dy=e.clientY-down.y;if(Math.hypot(dx,dy)>12)down.moved=true;
+  if(down.moved){panX=Math.max(-W*.5,Math.min(W*.5,down.px+dx));panY=Math.max(-H*.3,Math.min(H*.3,down.py+dy));fit()}});
+cv.addEventListener('pointerup',e=>{if(!down)return;if(!down.moved){const r=cv.getBoundingClientRect(),ix=pick(e.clientX-r.left,e.clientY-r.top);if(ix>=0)tapPlot(ix)}down=null});
+
+/* interface */
+let tt;function toast(s,ms=2400){const e=$('toast');e.textContent=s;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),ms)}
+function cropIcon(c){
+  const g='<path d="M20 22c-6-4-8-12-6-16 4 2 6 8 6 16zM20 22c6-4 8-12 6-16-4 2-6 8-6 16z" fill="#4caf50"/>';
+  if(c.k==='root')return g+`<ellipse cx="20" cy="28" rx="9" ry="8" fill="${c.c}"/>`+(c.c2!==c.c?`<ellipse cx="20" cy="24" rx="9" ry="4" fill="${c.c2}"/>`:'');
+  if(c.k==='stalk')return `<path d="M20 6v30" stroke="#3d9443" stroke-width="3"/><ellipse cx="22" cy="20" rx="6" ry="12" fill="${c.c}"/><path d="M14 30c2-6 6-10 6-10" stroke="#4caf50" stroke-width="4" fill="none"/>`;
+  if(c.k==='bush')return `<circle cx="20" cy="22" r="13" fill="#4caf50"/><circle cx="14" cy="20" r="4.5" fill="${c.c}"/><circle cx="25" cy="18" r="4.5" fill="${c.c}"/><circle cx="21" cy="28" r="4.5" fill="${c.c}"/>`;
+  if(c.k==='ground')return `<ellipse cx="20" cy="24" rx="15" ry="11" fill="${c.c}"/>${c.n==='Melancia'?'<path d="M12 15v18M20 13v22M28 15v18" stroke="#2a6b31" stroke-width="2.5"/>':'<path d="M20 13v22M13 15q-4 9 0 18M27 15q4 9 0 18" stroke="#c96a10" stroke-width="2" fill="none"/><rect x="18" y="8" width="4" height="6" fill="#5a7a2a"/>'}`;
+  return `<path d="M20 22v16" stroke="#3d9443" stroke-width="3"/>${[...Array(10)].map((_,a)=>`<ellipse cx="${20+Math.cos(a/10*6.28)*9}" cy="${16+Math.sin(a/10*6.28)*9}" rx="5" ry="2.6" fill="${c.c}" transform="rotate(${a*36} ${20+Math.cos(a/10*6.28)*9} ${16+Math.sin(a/10*6.28)*9})"/>`).join('')}<circle cx="20" cy="16" r="7" fill="#6b3e1e"/>`;
+}
+function hud(){
+  $('lvl').textContent=S.lv;$('xpb').style.width=Math.min(100,S.xp/xpNeed(S.lv)*100)+'%';$('coins').textContent=fmt(S.coins);
+  const c=CR[S.sel];$('seedName').textContent=c.n;$('seedIco').innerHTML=cropIcon(c);
+  const tot=Object.values(S.barn).reduce((a,b)=>a+b,0);$('barnN').textContent=tot?tot+' itens':'vazio';
+  const ready=S.orders.filter(canFill).length;$('ordN').textContent=S.truck?'na estrada':ready?ready+' pronto'+(ready>1?'s':''):'3 clientes';$('bOrd').classList.toggle('hot',!S.truck&&ready>0);
+  $('shopN').textContent=S.it.adubo?'adubo × '+S.it.adubo:'melhorias';
+}
+function modal(html){$('panel').className='panel center';$('panel').innerHTML=html;$('sheet').classList.remove('hide');const o=$('ok');if(o)o.onclick=closeSheet}
+function sheet(html){$('panel').className='panel';$('panel').innerHTML=html;$('sheet').classList.remove('hide')}
+const closeSheet=()=>$('sheet').classList.add('hide');
+$('sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet()});
+$('bSeed').onclick=()=>{mode=null;
+  sheet(`<h2>Sementes</h2><p>Escolha o que plantar. Toque num canteiro vazio para semear.</p><div class="grid">${CR.map((c,ix)=>{const lk=S.lv<c.lv,gain=c.q*c.sell-c.seed;
+    return`<button class="card-crop${ix===S.sel?' on':''}${lk?' lock':''}" data-ix="${ix}"><svg viewBox="0 0 40 40">${cropIcon(c)}</svg><div><b>${c.n}</b><span>${lk?'Libera no nível '+c.lv:`Semente ${c.seed} · ${fmtT(c.t)}`}</span><span>${lk?'':`Lucro até ${gain*c.s}${c.s>1?' em '+c.s+' safras':''}`}</span></div></button>`}).join('')}</div><button class="btn big alt" id="cl">Fechar</button>`);
+  $('cl').onclick=closeSheet;
+  $('panel').querySelectorAll('.card-crop').forEach(b=>b.onclick=()=>{const ix=+b.dataset.ix;if(S.lv<CR[ix].lv){toast(`${CR[ix].n} libera no nível ${CR[ix].lv}`);return}S.sel=ix;hud();save();closeSheet();toast(`Plantando ${CR[ix].n}. Toque nos canteiros vazios.`)});
+};
+function barn(){
+  const items=Object.entries(S.barn).filter(([,v])=>v>0);
+  const total=items.reduce((s,[k,v])=>s+v*CR[k].sell,0);
+  sheet(`<h2>Celeiro</h2><p>Venda a colheita para comprar mais sementes e canteiros.</p>${items.length?items.map(([k,v])=>`<div class="row"><svg viewBox="0 0 40 40">${cropIcon(CR[k])}</svg><div class="n">${CR[k].n} × ${v}<span>${CR[k].sell} moedas cada</span></div><button class="btn" data-k="${k}">Vender ${fmt(v*CR[k].sell)}</button></div>`).join('')+`<button class="btn big red" id="all">Vender tudo por ${fmt(total)}</button>`:'<div class="empty">O celeiro está vazio. Colha algo maduro!</div>'}<button class="btn big alt" id="cl">Fechar</button>`);
+  $('cl').onclick=closeSheet;
+  $('panel').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{const k=b.dataset.k,v=S.barn[k]*CR[k].sell;S.coins+=v;S.barn[k]=0;toast(`+${fmt(v)} moedas`);hud();save();barn()});
+  const a=$('all');if(a)a.onclick=()=>{S.coins+=total;S.barn={};toast(`Vendido! +${fmt(total)} moedas`);hud();save();barn()};
+}
+$('bBarn').onclick=barn;$('bOrd').onclick=orders;$('bShop').onclick=shop;
+$('bAll').onclick=()=>{let n=0;S.plots.forEach((p,ix)=>{if(p.s==='grow'&&frac(p)>=1&&!p.b&&!p.w&&!p.d){harvest(ix,true);n++}});
+  const pend=S.plots.filter(p=>p.s==='grow'&&frac(p)>=1).length;toast(n?`Colheu ${n} canteiro${n>1?'s':''}!${pend?' Cuide dos que têm problema.':''}`:'Cuide do mato, dos bichinhos e da água antes de colher')};
+
+/* presente diário e boas-vindas */
+const today=new Date().toISOString().slice(0,10);
+if(wasNew){modal(`<h2>Bem-vindo à Fazenda Feliz!</h2><p>Plante, cuide e colha. Tire o mato, espante os bichinhos e regue a terra seca para colher mais.</p><p>As plantas continuam crescendo mesmo com o jogo fechado.</p><button class="btn big" id="ok">Começar a plantar</button>`);S.gift=today;save()}
+else if(S.gift!==today){const g=30+S.lv*10;S.coins+=g;S.gift=today;save();
+  const ready=S.plots.filter(p=>p.s==='grow'&&frac(p)>=1).length;
+  modal(`<h2>Presente do dia</h2><p>Você ganhou <b>${g} moedas</b> por voltar à fazenda.</p>${ready?`<p>${ready} canteiro${ready>1?'s estão maduros':' está maduro'} esperando a colheita!</p>`:''}<button class="btn big" id="ok">Pegar presente</button>`)}
+hud();
+
+let last=performance.now();
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;draw(now/1000,dt);
+  $('bAll').classList.toggle('hide',!S.plots.some(p=>p.s==='grow'&&frac(p)>=1));
+  requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
