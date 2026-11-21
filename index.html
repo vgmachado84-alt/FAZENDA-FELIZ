@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Fazenda Feliz</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Arial;background:#8bd36b;color:#263b25;overflow:hidden}
+#app{height:100dvh;display:flex;flex-direction:column;background:linear-gradient(#8bd5fa 0 30%,#9cdd72 30% 100%)}
+header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fff9e9;border-bottom:3px solid #d7b878;z-index:2}
+.logo{font-weight:900;font-size:18px;color:#39813c;text-shadow:1px 1px #fff}.stats{display:flex;gap:7px;font-size:13px;font-weight:800}.pill{background:#fff;border:2px solid #e5d5a8;border-radius:18px;padding:5px 9px;white-space:nowrap}
+#scene{position:relative;flex:1;overflow:hidden;touch-action:pan-y}
+#world{position:absolute;width:900px;height:700px;left:50%;top:50%;transform:translate(-50%,-48%) scale(var(--zoom,.72));transform-origin:center center}
+#ground{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 48%,#b7e987,#81cb5c 68%,#6eb84f);clip-path:polygon(50% 0,100% 30%,50% 100%,0 68%)}
+#plots{position:absolute;left:250px;top:220px;width:400px;display:grid;grid-template-columns:repeat(4,90px);gap:12px;transform:skewY(-25deg) rotate(0deg)}
+.plot{height:66px;border:3px solid #9b673a;border-radius:9px;background:linear-gradient(135deg,#a66e3e,#754725);box-shadow:0 5px 0 #5d3d28;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:29px;transform:skewY(25deg);user-select:none}
+.plot.empty:after{content:"";position:absolute;inset:7px;border:2px dashed #d8a66d;border-radius:5px;opacity:.65}
+.plot.ready{background:linear-gradient(135deg,#b57b40,#87552b);animation:glow 1s infinite alternate}
+@keyframes glow{to{filter:brightness(1.22)}}
+#barn{position:absolute;left:90px;top:210px;font-size:92px;filter:drop-shadow(0 8px 2px #477d38)}
+#tree{position:absolute;right:90px;top:265px;font-size:82px;filter:drop-shadow(0 7px 2px #477d38)}
+#cow{position:absolute;left:100px;top:440px;font-size:55px;filter:drop-shadow(0 5px 1px #477d38)}
+#well{position:absolute;right:160px;top:460px;font-size:55px}
+#sign{position:absolute;left:395px;top:120px;font-size:45px}
+footer{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:9px;background:#fff9e9;border-top:3px solid #d7b878;z-index:3}
+button{border:0;border-radius:13px;padding:10px 5px;font-weight:800;background:#6ebc4c;color:white;box-shadow:0 3px 0 #43852f;font-size:13px}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 #43852f}
+#panel{position:absolute;z-index:5;left:50%;bottom:12px;transform:translateX(-50%);width:min(94%,430px);background:#fffdf3;border:3px solid #d9bd7d;border-radius:18px;padding:13px;box-shadow:0 8px 25px #31552d66;display:none}
+#panel h3{margin:0 0 8px;color:#397b37}#panel .items{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.item{background:#f2f8df;border:2px solid #d6e5b9;border-radius:12px;padding:9px;text-align:center;font-size:13px}
+.item button{width:100%;margin-top:6px}
+#close{float:right;background:#d66b55;box-shadow:0 3px #a44332;padding:5px 10px}
+#toast{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:#263b25;color:white;padding:9px 15px;border-radius:20px;z-index:8;opacity:0;transition:.2s;pointer-events:none;font-weight:700;font-size:13px;white-space:nowrap}
+#hint{position:absolute;bottom:10px;left:10px;background:#ffffffc9;padding:7px 10px;border-radius:10px;font-size:11px}
+</style></head>
+<body><div id="app">
+<header><div class="logo">🌻 FAZENDA FELIZ</div><div class="stats"><div class="pill">🪙 <span id="coins">150</span></div><div class="pill">⭐ Nv. <span id="level">1</span></div></div></header>
+<div id="scene"><div id="world"><div id="ground"></div><div id="barn">🏡</div><div id="tree">🌳</div><div id="cow">🐄</div><div id="well">🪣</div><div id="sign">🌻</div><div id="plots"></div></div><div id="hint">Toque em um canteiro para plantar ou colher</div><div id="toast"></div><div id="panel"><button id="close" onclick="closePanel()">✕</button><h3 id="panelTitle">Loja da fazenda</h3><div id="panelBody"></div></div></div>
+<footer><button onclick="openShop()">🛒 Loja</button><button onclick="selectSeed()">🌱 Plantar</button><button onclick="sellAll()">📦 Vender</button><button onclick="expand()">🧱 Expandir</button></footer>
+</div>
+<script>
+const crops=[{id:'wheat',name:'Trigo',emoji:'🌾',cost:5,price:12,time:12,xp:3},{id:'corn',name:'Milho',emoji:'🌽',cost:9,price:20,time:18,xp:5},{id:'carrot',name:'Cenoura',emoji:'🥕',cost:7,price:16,time:15,xp:4},{id:'strawberry',name:'Morango',emoji:'🍓',cost:14,price:32,time:25,xp:7}];
+let state=JSON.parse(localStorage.getItem('ff-save')||'null')||{coins:150,xp:0,level:1,plots:Array(8).fill(null),inventory:0,seed:'wheat',unlocked:8};
+const plots=document.getElementById('plots');
+function save(){localStorage.setItem('ff-save',JSON.stringify(state));renderStats()}
+function renderStats(){document.getElementById('coins').textContent=state.coins;document.getElementById('level').textContent=state.level}
+function render(){plots.innerHTML='';state.plots.forEach((p,i)=>{let el=document.createElement('div');let ready=p&&Date.now()>=p.ready;el.className='plot '+(!p?'empty':ready?'ready':'');el.textContent=!p?'':ready?crops.find(c=>c.id===p.crop).emoji:'🌱';el.title='Canteiro '+(i+1);el.onclick=()=>tapPlot(i);plots.appendChild(el)});renderStats()}
+function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;clearTimeout(window.tt);window.tt=setTimeout(()=>e.style.opacity=0,1800)}
+function tapPlot(i){let p=state.plots[i];if(!p){let c=crops.find(c=>c.id===state.seed);if(state.coins<c.cost)return toast('Moedas insuficientes!');state.coins-=c.cost;state.plots[i]={crop:c.id,ready:Date.now()+c.time*1000};toast(c.name+' plantado! 🌱');save();render();return}if(Date.now()<p.ready){let s=Math.ceil((p.ready-Date.now())/1000);toast('Crescendo... '+s+'s');return}let c=crops.find(c=>c.id===p.crop);state.plots[i]=null;state.inventory+=c.price;state.xp+=c.xp;if(state.xp>=state.level*35){state.xp=0;state.level++;toast('Subiu para o nível '+state.level+'! ⭐')}else toast(c.name+' colhido!');save();render()}
+function openPanel(title,html){document.getElementById('panelTitle').textContent=title;document.getElementById('panelBody').innerHTML=html;document.getElementById('panel').style.display='block'}
+function closePanel(){document.getElementById('panel').style.display='none'}
+function openShop(){openPanel('🛒 Loja de sementes','<div class="items">'+crops.map(c=>`<div class="item"><div style="font-size:25px">${c.emoji}</div><b>${c.name}</b><br>🪙 ${c.cost} · ${c.time}s<div><button onclick="buySeed('${c.id}')">Selecionar</button></div></div>`).join('')+'</div>')}
+function buySeed(id){state.seed=id;toast('Semente selecionada! Toque em um canteiro.');closePanel()}
+function selectSeed(){openShop()}
+function sellAll(){if(!state.inventory)return toast('Você ainda não tem produtos para vender!');state.coins+=state.inventory;toast('Venda realizada: +'+state.inventory+' moedas!');state.inventory=0;save()}
+function expand(){if(state.unlocked>=12)return toast('Todos os canteiros disponíveis!');if(state.coins<100)return toast('Precisa de 100 moedas para expandir.');state.coins-=100;state.unlocked+=4;for(let i=0;i<4;i++)state.plots.push(null);plots.style.gridTemplateColumns='repeat(4,90px)';toast('Novos canteiros desbloqueados!');save();render()}
+render();setInterval(render,1000);
+let startX=0;document.getElementById('scene').addEventListener('touchstart',e=>startX=e.touches[0].clientX,{passive:true});
+</script></body></html>
