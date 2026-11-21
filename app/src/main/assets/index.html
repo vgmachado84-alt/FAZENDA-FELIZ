@@ -1,177 +1,101 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#6fbf45"><title>Fazenda Feliz</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Fazenda Feliz</title>
 <style>
-:root{--gold:#ffcf42;--brown:#78431f;--green:#398d35;--cream:#fff4d6;--shadow:0 4px 0 #653714,0 7px 14px #173b1b66}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#6fba48;color:#fff;touch-action:manipulation}
-#game{height:100dvh;width:100vw;display:flex;flex-direction:column;position:relative;background:linear-gradient(#8ad5fa 0%,#b8e8ff 30%,#76c34e 31%,#55a83d 100%);overflow:hidden}
-.topbar{z-index:5;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;background:linear-gradient(180deg,#9b5728,#693817);border-bottom:4px solid #4d2b16;box-shadow:0 3px 8px #0005;min-height:58px}
-.brand{display:flex;align-items:center;gap:7px;font-weight:1000;font-size:clamp(14px,2.3vw,23px);text-shadow:0 2px #48240f;white-space:nowrap}.avatar{font-size:28px;background:#ffe8a5;border:3px solid #e8a83b;border-radius:50%;width:42px;height:42px;display:grid;place-items:center}
-.level{font-size:10px;background:#4a2917;border:1px solid #d79b42;border-radius:20px;padding:4px 8px;white-space:nowrap}.stats{display:flex;gap:6px;align-items:center}.stat{background:#553017;border:2px solid #d28a2e;border-radius:22px;padding:5px 9px;font-weight:900;font-size:clamp(11px,1.8vw,16px);white-space:nowrap;box-shadow:inset 0 2px #ffffff35}.plus{border:0;border-radius:50%;background:#42c84c;color:#fff;font-size:16px;font-weight:1000;width:23px;height:23px;margin-left:4px}
-.scene{position:relative;flex:1;min-height:0;overflow:hidden;background:linear-gradient(#9bdfff 0 22%,#7cc64e 22% 100%)}
-#mapBack{position:absolute;inset:-20px;background:url('fazenda_fundo.jpg') center/cover;filter:blur(14px) brightness(.85)}
-#mapCanvas{position:absolute;left:0;top:0;background-image:url('fazenda_fundo.jpg');background-size:100% 100%;background-repeat:no-repeat;transform-origin:center center;touch-action:none}
-#mapCanvas.rotated{transform:translate(-50%,-50%) rotate(90deg)}
-#mapCanvas .plot,#mapCanvas .animal-hot,#decorations{position:absolute}
-#decorations{inset:0;z-index:2;pointer-events:none}.decoration{position:absolute;font-size:clamp(25px,5vw,44px);filter:drop-shadow(0 3px 2px #38220e);animation:bob 2.8s ease-in-out infinite alternate}
-@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-5px)}}
-.plot.ready{animation:readyPulse 1s ease-in-out infinite alternate}@keyframes readyPulse{to{filter:brightness(1.35) drop-shadow(0 0 8px #ffe45e)}}
-#rotateBtn{right:10px;top:56px}
-/* vida no mapa: recortes do próprio desenho que se mexem no lugar */
-.spr{position:absolute;z-index:1;pointer-events:none;background-image:url('fazenda_mapa.jpg');background-repeat:no-repeat;-webkit-mask-image:radial-gradient(closest-side,#000 72%,transparent 100%);mask-image:radial-gradient(closest-side,#000 72%,transparent 100%);transform-origin:50% 90%;will-change:transform}
-.breathe{animation:breathe 2.6s ease-in-out infinite}
-@keyframes breathe{0%,100%{transform:scale(1,1) rotate(0)}25%{transform:scale(1.02,1.05) rotate(-1.5deg)}50%{transform:scale(1,1) rotate(0)}75%{transform:scale(1.02,1.04) rotate(1.5deg)}}
-.nod{transform-origin:15% 85%;animation:nod 3.4s ease-in-out infinite}
-@keyframes nod{0%,45%,100%{transform:rotate(0)}55%{transform:rotate(-9deg)}65%{transform:rotate(4deg)}75%{transform:rotate(-7deg)}85%{transform:rotate(3deg)}}
-.hop{animation:hop 4.2s ease-in-out infinite}
-@keyframes hop{0%,70%,100%{transform:translateY(0)}78%{transform:translateY(-4%) scale(1.01,.99)}86%{transform:translateY(0) scale(1.02,.97)}92%{transform:scale(1,1)}}
-.wag{transform-origin:50% 95%;animation:wag 1.1s ease-in-out infinite}
-@keyframes wag{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2.5deg) translateY(-1%)}}
-.float{animation:floaty 2.2s ease-in-out infinite alternate}
-@keyframes floaty{from{transform:translate(0,0) rotate(-2deg)}to{transform:translate(4%,6%) rotate(2deg)}}
-.idle{animation:engine .18s linear infinite}
-@keyframes engine{0%{transform:translate(0,0)}50%{transform:translate(0,.6%)}100%{transform:translate(0,0)}}
-.drive{animation:drive 1.8s ease-in-out}
-@keyframes drive{0%{transform:translate(0,0)}15%{transform:translate(0,1%) rotate(-1deg)}45%{transform:translate(-9%,6%) rotate(1deg)}75%{transform:translate(-4%,3%) rotate(-1deg)}100%{transform:translate(0,0)}}
-.puff{position:absolute;z-index:2;pointer-events:none;width:2.2%;aspect-ratio:1;border-radius:50%;background:radial-gradient(#fff,#fff0 70%);animation:puff 2.4s linear infinite;opacity:0}
-@keyframes puff{0%{opacity:0;transform:translate(0,0) scale(.4)}15%{opacity:.85}100%{opacity:0;transform:translate(60%,-260%) scale(1.8)}}
-.puff.dark{background:radial-gradient(#9a9a9a,#9a9a9a00 70%)}
-#tractorHot{position:absolute;z-index:2;left:68%;top:22%;width:16%;height:18%;border:0;background:#fff0;padding:0}
-#tractorHot:after{content:'👆';position:absolute;left:50%;top:-8px;translate:-50% 0;font-size:clamp(16px,2.6vw,22px);background:#fff8e6;border:2px solid #9a5a25;border-radius:50%;width:1.7em;height:1.7em;display:grid;place-items:center;box-shadow:0 2px 4px #0005}
-.zoombar{position:absolute;z-index:3;right:10px;bottom:14px;display:flex;flex-direction:column;gap:8px}
-.zoombar button{width:44px;height:44px;border-radius:50%;border:2px solid #fff6;background:linear-gradient(#ffe38a,#e89c24);color:#623611;font-weight:1000;font-size:22px;box-shadow:var(--shadow);display:grid;place-items:center;padding:0}
-
-.walker{position:absolute;z-index:1;pointer-events:none;translate:-50% -88%;transform-origin:50% 88%;will-change:left,top,transform}
-.walker img{width:100%;height:auto;display:block}
-.walker:before{content:'';position:absolute;left:12%;right:12%;bottom:4%;height:16%;border-radius:50%;background:#3a210f55;filter:blur(2px);z-index:-1}
-.bed{position:absolute;z-index:1;width:15%;height:12.5%;translate:-50% -50%;pointer-events:none;border-radius:50%;background:radial-gradient(ellipse at 50% 40%,#8a5a32,#5e3a1d 70%);-webkit-mask-image:radial-gradient(closest-side,#000 74%,transparent 100%);mask-image:radial-gradient(closest-side,#000 74%,transparent 100%);transition:opacity .8s;box-shadow:inset 0 0 0 2px #3e2511}
-.bed:before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(-27deg,#0000 0 7px,#3e2511aa 7px 10px,#b07a4733 10px 12px)}
-.bed.ready{opacity:0}
-.bed .sp{position:absolute;width:19%;aspect-ratio:1;translate:-50% -100%;transform-origin:50% 100%;transition:transform .8s}
-.bed .sp svg{width:100%;height:100%;overflow:visible}
-@media (prefers-reduced-motion:reduce){.spr,.puff{animation:none}}
-.scene.dragging #mapCanvas{transition:none}
-.scene:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#0002,transparent 20%,transparent 80%,#0002)}
-.floatbtn{position:absolute;z-index:3;top:10px;border:2px solid #fff6;border-radius:13px;background:linear-gradient(#ffe38a,#e89c24);color:#623611;font-weight:1000;padding:7px 10px;box-shadow:var(--shadow);font-size:clamp(11px,1.6vw,15px)}#missionBtn{left:10px}#dailyBtn{right:10px}
-.plot{position:absolute;z-index:2;translate:-50% -50%;width:clamp(48px,8vw,86px);height:clamp(34px,5.8vw,60px);border:2px dashed #fff8;border-radius:12px;background:#75411c33;display:grid;place-items:center;font-size:clamp(19px,3vw,29px);text-shadow:0 2px 3px #333;filter:drop-shadow(0 2px 2px #4b2b16);transition:transform .15s}.plot:active{transform:scale(.94)}.plot small{position:absolute;bottom:-13px;color:#fff;background:#573018e8;padding:1px 5px;border-radius:8px;font-size:9px;font-weight:900;white-space:nowrap}
-#plot1{left:42%;top:47%}#plot2{left:58%;top:57%}#plot3{left:69%;top:65%}#plot4{left:86%;top:56%}
-.animal-hot{position:absolute;z-index:2;border:0;background:#fff0;padding:0;font-size:0;translate:-50% -50%}
-.animal-hot:after{content:'👆';position:absolute;left:50%;top:-6px;translate:-50% 0;font-size:clamp(16px,2.6vw,22px);background:#fff8e6;border:2px solid #9a5a25;border-radius:50%;width:1.7em;height:1.7em;display:grid;place-items:center;box-shadow:0 2px 4px #0005}
-#chicken{font-size:clamp(24px,4vw,38px)}#chicken:after{display:none}#cow{left:16%;top:61%;width:12%;height:16%}#pig{left:33%;top:74%;width:11%;height:13%}#chicken{left:91%;top:86%;width:7%;height:10%}
-.sidehint{position:absolute;z-index:3;left:10px;bottom:10px;background:#fff0cfee;color:#603b1c;border:2px solid #b97830;border-radius:12px;padding:6px 10px;font-size:clamp(9px,1.4vw,13px);font-weight:900;box-shadow:var(--shadow);max-width:36%}
-.bottom{z-index:6;display:flex;align-items:center;justify-content:space-around;gap:5px;padding:7px 7px calc(7px + env(safe-area-inset-bottom));background:linear-gradient(#a65d2c,#683719);border-top:4px solid #e4a348;box-shadow:0 -4px 10px #0004}.tool{border:2px solid #f7d276;border-radius:14px;background:linear-gradient(#ffdc6d,#e99a25);color:#623711;box-shadow:0 3px 0 #623611;padding:5px 7px;min-width:0;flex:1;max-width:125px;font-size:clamp(9px,1.5vw,13px);font-weight:1000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1px}.tool span{font-size:clamp(20px,3vw,28px)}.tool.harvest{background:linear-gradient(#8df04d,#32a82c);color:white;border-color:#d6ff91;max-width:145px;flex:1.25;text-shadow:0 2px #236b1e}.tool:active,.floatbtn:active{transform:translateY(2px);filter:brightness(.95)}
-.modalback{display:none;position:absolute;z-index:20;inset:0;background:#14220dcc;align-items:center;justify-content:center;padding:16px}.modalback.show{display:flex}.modal{width:min(440px,94vw);max-height:88%;overflow:auto;background:linear-gradient(#fff4d5,#f5d99c);border:5px solid #9a5a25;border-radius:22px;color:#593719;box-shadow:0 10px 35px #0008;padding:15px}.modalhead{display:flex;align-items:center;justify-content:space-between;font-weight:1000;font-size:20px;margin-bottom:10px}.close{border:0;border-radius:50%;background:#c74b36;color:white;font-weight:1000;width:30px;height:30px;font-size:18px}.choices{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.choice{border:2px solid #c48b43;border-radius:13px;background:#fff9e9;padding:10px;color:#603b1b;font-weight:900;text-align:center}.choice b{display:block;font-size:27px}.choice:disabled{opacity:.45}.action{border:0;border-radius:12px;background:linear-gradient(#70d94c,#2b9d31);color:white;font-weight:1000;padding:10px 14px;box-shadow:0 3px 0 #236c2a;margin-top:10px;width:100%;font-size:15px}.note{font-size:12px;color:#79502b;line-height:1.4}.progress{height:9px;background:#d4b47c;border-radius:10px;overflow:hidden;margin-top:6px}.progress i{display:block;height:100%;background:#61bd42;width:0%;transition:width .3s}.toast{position:absolute;z-index:30;left:50%;top:18%;transform:translate(-50%,-10px);background:#4b2b18;color:white;padding:10px 17px;border:2px solid #ffdb6d;border-radius:20px;font-weight:900;opacity:0;pointer-events:none;transition:.25s;white-space:nowrap;box-shadow:0 4px 12px #0005}.toast.on{opacity:1;transform:translate(-50%,0)}
-@media (orientation:portrait){.scene{background-position:center}.topbar{min-height:54px}.brand{font-size:13px}.stats{gap:3px}.stat{padding:4px 6px}.level{display:none}.sidehint{max-width:42%}.bottom{padding:5px 4px calc(5px + env(safe-area-inset-bottom))}.tool{padding:4px 3px}}
+:root{--green:#3b9d46;--deep:#236b35;--gold:#ffca3a;--cream:#fff7df;--brown:#8b542b}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#7fbd52;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;touch-action:none;color:#fff}
+#game{height:100dvh;display:flex;flex-direction:column;background:linear-gradient(#8bd8f4,#a9db72)}
+#top{z-index:5;display:flex;align-items:center;justify-content:space-between;gap:5px;padding:env(safe-area-inset-top) 8px 7px;background:linear-gradient(#2f9145,#216c38);box-shadow:0 3px 7px #174b3488;min-height:58px}
+.brand{font-weight:1000;font-size:clamp(14px,3.4vw,21px);color:#fff4b0;text-shadow:1px 2px #70451d;white-space:nowrap}.stats{display:flex;gap:5px;align-items:center;justify-content:flex-end;flex-wrap:wrap}.stat{background:#164f31;border:1px solid #9cdb75;border-radius:20px;padding:4px 8px;font-size:12px;font-weight:800;white-space:nowrap}.stat b{color:#ffe37b}
+#scene{position:relative;flex:1;min-height:0;overflow:hidden;background:#9ddc6a}canvas{display:block;width:100%;height:100%;touch-action:none}
+#hint{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:#fff9;border:1px solid #fff;border-radius:20px;padding:5px 12px;color:#315b30;font-size:11px;font-weight:800;pointer-events:none;white-space:nowrap;text-shadow:none}
+#bottom{z-index:5;background:linear-gradient(#fff4d3,#e6c68c);padding:7px 7px calc(7px + env(safe-area-inset-bottom));display:flex;gap:6px;justify-content:space-around;box-shadow:0 -3px 8px #63401b55}
+.action{border:2px solid #b87932;border-radius:14px;background:linear-gradient(#fff,#f6d99b);color:#603c1c;min-width:0;flex:1;padding:6px 3px;font-weight:900;font-size:11px;box-shadow:0 3px #a86a2a;display:flex;flex-direction:column;align-items:center;gap:2px}
+.action:active{transform:translateY(2px);box-shadow:0 1px #a86a2a}.action small{font-size:9px;font-weight:700;color:#76502b}.action.selected{background:linear-gradient(#fff6a9,#ffcf4a);border-color:#e39b19}
+#toast{position:absolute;z-index:20;left:50%;bottom:90px;transform:translateX(-50%);background:#254d2b;color:white;padding:9px 16px;border-radius:20px;font-weight:800;font-size:13px;box-shadow:0 3px 10px #0005;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+#panel{position:absolute;z-index:15;inset:12% 6% 12%;background:linear-gradient(#fff9e8,#f0d49c);border:4px solid #a86a2a;border-radius:22px;box-shadow:0 10px 40px #173b2788;color:#57371c;display:none;overflow:auto;padding:15px}#panel h2{margin:0 0 10px;color:#367b3c}#panel p{font-size:13px}#panel .close{float:right;border:0;border-radius:50%;width:32px;height:32px;background:#b84a35;color:white;font-size:18px;font-weight:900} .shopgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.shopitem{background:#fff8e7;border:2px solid #d7a75f;border-radius:14px;padding:9px;text-align:center}.shopitem img{width:90px;height:70px;object-fit:contain}.shopitem strong{display:block}.shopitem button,.panelbtn{border:0;border-radius:12px;background:#3c9b4b;color:white;padding:8px 12px;font-weight:900;margin-top:5px}.mission{background:#fff8e7;border-radius:12px;padding:10px;margin:7px 0;border:1px solid #ddb36e}
+@media(orientation:landscape){#top{min-height:48px}.stat{font-size:11px;padding:3px 7px}#bottom{padding-top:4px;padding-bottom:4px}.action{padding:3px;font-size:10px;flex-direction:row;justify-content:center}.action small{display:none}#panel{inset:8% 20%}}
 </style></head>
-<body><main id="game">
-<header class="topbar"><div class="brand"><div class="avatar">👩🏻‍🌾</div><div>FAZENDA FELIZ<div class="level">⭐ NÍVEL <b id="level">1</b> · <span id="xp">0</span>/100 XP</div></div></div><div class="stats"><div class="stat">🪙 <span id="coins">500</span><button class="plus" onclick="openShop()">+</button></div><div class="stat">💎 <span id="gems">12</span></div><div class="stat">⚡ <span id="energy">30</span>/30</div></div></header>
-<section class="scene" id="scene">
-<div id="mapBack"></div><div id="mapCanvas"><div class="spr breathe" style="left:9.5%;top:51.5%;width:14.0%;height:20.0%;background-size:714.29% 500.00%;background-position:11.047% 64.375%;animation-delay:0s"></div><div class="spr nod" style="left:16.8%;top:51.8%;width:6.399999999999999%;height:11.200000000000003%;background-size:1562.50% 892.86%;background-position:17.949% 58.333%;animation-delay:0s"></div><div class="spr wag" style="left:8.8%;top:84%;width:9.0%;height:16%;background-size:1111.11% 625.00%;background-position:9.670% 100.000%;animation-delay:0s"></div><div class="spr float" style="left:91.6%;top:26%;width:4.400000000000006%;height:6.5%;background-size:2272.73% 1538.46%;background-position:95.816% 27.807%;animation-delay:0s"></div><div class="spr float" style="left:95.6%;top:32.6%;width:4.400000000000006%;height:7.0%;background-size:2272.73% 1428.57%;background-position:100.000% 35.054%;animation-delay:0.8s"></div><div id="tractorSpr" class="spr idle" style="left:68%;top:21.5%;width:16.5%;height:19.5%;background-size:606.06% 512.82%;background-position:81.437% 26.708%;-webkit-mask-image:radial-gradient(closest-side,#000 80%,transparent 100%);mask-image:radial-gradient(closest-side,#000 80%,transparent 100%)"></div><span class="puff dark" style="left:79.2%;top:21.5%;animation-delay:0s"></span><span class="puff dark" style="left:79.2%;top:21.5%;animation-delay:0.8s"></span><span class="puff dark" style="left:79.2%;top:21.5%;animation-delay:1.6s"></span><span class="puff" style="left:21.2%;top:0%;animation-delay:0s;animation-duration:3.4s"></span><span class="puff" style="left:21.2%;top:0%;animation-delay:1.1s;animation-duration:3.4s"></span><span class="puff" style="left:21.2%;top:0%;animation-delay:2.2s;animation-duration:3.4s"></span><button id="tractorHot" onclick="useTractor()" aria-label="Usar o trator"></button><div class="walker" id="w_pig" data-hx="32.97" data-hy="79.36" style="left:32.97%;top:79.36%;width:10.85%"><img src="anim_pig.png" alt=""></div><div class="walker" id="w_sheep1" data-hx="45.25" data-hy="93.82" style="left:45.25%;top:93.82%;width:10.17%"><img src="anim_sheep1.png" alt=""></div><div class="walker" id="w_sheep2" data-hx="53.94" data-hy="92.40" style="left:53.94%;top:92.40%;width:9.24%"><img src="anim_sheep2.png" alt=""></div><button class="animal-hot" id="sheepHot" onclick="animal('sheep')" aria-label="Cuidar das ovelhas" style="width:9%;height:12%"></button><div id="decorations"></div>
-<button class="plot" id="plot1" onclick="openPlot(0)">🌾<small>canteiro 1</small></button><button class="plot" id="plot2" onclick="openPlot(1)">🥕<small>canteiro 2</small></button><button class="plot" id="plot3" onclick="openPlot(2)">🍓<small>canteiro 3</small></button><button class="plot" id="plot4" onclick="openPlot(3)">🥬<small>canteiro 4</small></button>
-<button class="animal-hot" id="cow" onclick="animal('cow')" aria-label="Cuidar da vaca">🐄</button><button class="animal-hot" id="pig" onclick="animal('pig')" aria-label="Cuidar do porco">🐖</button><button class="animal-hot" id="chicken" onclick="animal('chicken')" aria-label="Cuidar das galinhas">🐔</button></div>
-<button class="floatbtn" id="missionBtn" onclick="openMissions()">📋 MISSÕES <span id="missionCount">1</span></button><button class="floatbtn" id="dailyBtn" onclick="dailyReward()">🎁 PRESENTE</button><button class="floatbtn" id="rotateBtn" onclick="rotateFarm()">🔄 Girar mapa</button><div class="zoombar"><button onclick="zoomBy(1.25)" aria-label="Aproximar">+</button><button onclick="zoomBy(0.8)" aria-label="Afastar">−</button><button onclick="zoomReset()" aria-label="Centralizar" style="font-size:18px">⌖</button></div>
-<div class="sidehint">👆 Toque nos canteiros para plantar e colher! Arraste para passear e use dois dedos para o zoom.</div></section>
-<nav class="bottom"><button class="tool" onclick="openSeeds()"><span>🌱</span>Plantar</button><button class="tool" onclick="animal('cow')"><span>🐮</span>Animais</button><button class="tool" onclick="openBuild()"><span>🔨</span>Construir</button><button class="tool" onclick="expandFarm()"><span>🗺️</span>Expandir</button><button class="tool" onclick="openShop()"><span>🏪</span>Loja</button><button class="tool harvest" onclick="harvestAll()"><span>🌾</span>Colher tudo</button></nav>
-<div class="modalback" id="modalback" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modalhead"><span id="modalTitle">Fazenda</span><button class="close" onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div><div class="toast" id="toast"></div>
-</main>
+<body><div id="game">
+<header id="top"><div class="brand">FAZENDA FELIZ</div><div class="stats"><div class="stat">NÍVEL <b id="level">1</b></div><div class="stat">MOEDAS <b id="coins">250</b></div><div class="stat">ENERGIA <b id="energy">30</b></div><div class="stat">XP <b id="xp">0</b></div></div></header>
+<main id="scene"><canvas id="world"></canvas><div id="hint">Arraste para explorar · toque nos canteiros e animais</div><div id="toast"></div><section id="panel"></section></main>
+<nav id="bottom">
+<button class="action selected" id="plantBtn" onclick="choosePlant('wheat')"><span>Plantar</span><small>Trigo</small></button>
+<button class="action" onclick="openShop()">Loja<small>sementes</small></button>
+<button class="action" onclick="useTractor()">Trator<small>colher tudo</small></button>
+<button class="action" onclick="openMissions()">Missões<small>objetivos</small></button>
+<button class="action" onclick="dailyGift()">Presente<small>diário</small></button>
+<button class="action" onclick="expandLand()">Terreno<small>expandir</small></button>
+</nav></div>
 <script>
-const crops=[{id:'wheat',name:'Trigo',emoji:'🌾',cost:8,reward:18,xp:5,time:18},{id:'corn',name:'Milho',emoji:'🌽',cost:12,reward:27,xp:7,time:28},{id:'carrot',name:'Cenoura',emoji:'🥕',cost:10,reward:23,xp:6,time:23},{id:'strawberry',name:'Morango',emoji:'🍓',cost:18,reward:42,xp:10,time:38},{id:'lettuce',name:'Alface',emoji:'🥬',cost:7,reward:16,xp:4,time:15}];
-const initial={coins:500,gems:12,energy:30,xp:0,level:1,lastDaily:0,plots:[{crop:'wheat',planted:Date.now()-60000},{crop:'carrot',planted:Date.now()-60000},{crop:'strawberry',planted:Date.now()-60000},{crop:'lettuce',planted:Date.now()-60000}],animals:{cow:0,pig:0,chicken:0},expanded:false,buildings:[],missionClaimed:false};
-let state;try{state=JSON.parse(localStorage.getItem('fazendaFelizSave'))||initial}catch(e){state=initial}
-function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify(state));render()}
-function cropBy(id){return crops.find(c=>c.id===id)}function ready(p){return p.crop&&Date.now()-p.planted>=cropBy(p.crop).time*1000}function pct(p){if(!p.crop)return 0;return Math.min(100,(Date.now()-p.planted)/(cropBy(p.crop).time*1000)*100)}
-function render(){setTimeout(renderBeds,0);
- if(!state.buildings)state.buildings=[];if(state.missionClaimed===undefined)state.missionClaimed=false;
- document.getElementById('coins').textContent=state.coins.toLocaleString('pt-BR');document.getElementById('gems').textContent=state.gems;document.getElementById('energy').textContent=state.energy;document.getElementById('level').textContent=state.level;document.getElementById('xp').textContent=state.xp;
- state.plots.forEach((p,i)=>{let b=document.getElementById('plot'+(i+1));if(!b){if(!state.expanded)return;b=document.createElement('button');b.className='plot';b.id='plot'+(i+1);b.onclick=()=>openPlot(i);document.getElementById('mapCanvas').appendChild(b);const XP=PLOTPOS[i]||[60,60];b.style.left=XP[0]+'%';b.style.top=XP[1]+'%';}b.innerHTML=p.crop?(ready(p)?'✨'+cropBy(p.crop).emoji:cropBy(p.crop).emoji+'<small>'+Math.floor(pct(p))+'%</small>'):'➕<small>plantar</small>';b.style.background=ready(p)?'#f5ce4a88':'#75411c33';b.classList.toggle('ready',ready(p));});
- document.getElementById('missionCount').textContent=state.missionClaimed?'0':'1';document.getElementById('decorations').innerHTML=state.buildings.map((v,i)=>`<span class="decoration" style="left:${18+(i*17)%68}%;top:${18+(i*23)%62}%">${v.emoji}</span>`).join('');
-}
-function toast(t){let el=document.getElementById('toast');el.textContent=t;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),1900)}
-function show(title,html){document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=html;document.getElementById('modalback').classList.add('show')}function closeModal(){document.getElementById('modalback').classList.remove('show')}
-function openPlot(i){let p=state.plots[i];if(!p.crop){show('🌱 Preparar canteiro',seedChoices(i));return}let c=cropBy(p.crop);if(ready(p)){show('✨ Colheita pronta!',`<p>Seu ${c.name} está prontinho para colher!</p><p>Recompensa: <b>🪙 ${c.reward}</b> e <b>${c.xp} XP</b></p><button class="action" onclick="harvest(${i})">🌾 COLHER AGORA</button>`)}else{show(c.emoji+' '+c.name,`<p>A plantação está crescendo. Volte daqui a pouquinho!</p><div class="progress"><i style="width:${pct(p)}%"></i></div><p class="note">${Math.max(1,Math.ceil(c.time-(Date.now()-p.planted)/1000))} segundos restantes nesta demonstração.</p><button class="action" onclick="closeModal()">Continuar fazenda</button>`)}}
-function seedChoices(i){return '<div class="choices">'+crops.map(c=>`<button class="choice" ${state.coins<c.cost||state.energy<1?'disabled':''} onclick="plant(${i},'${c.id}')"><b>${c.emoji}</b>${c.name}<br>🪙 ${c.cost}<br><small>${c.time}s para crescer</small></button>`).join('')+'</div><p class="note">Os tempos são curtos nesta versão de teste para você experimentar o jogo.</p>'}
-function plant(i,id){let c=cropBy(id);if(state.coins<c.cost||state.energy<1){toast('Moedas ou energia insuficientes!');return}state.coins-=c.cost;state.energy--;state.plots[i]={crop:id,planted:Date.now()};closeModal();save();toast(c.name+' plantado! 🌱')}
-function harvest(i){let p=state.plots[i];if(!ready(p))return;let c=cropBy(p.crop);state.coins+=c.reward;addXp(c.xp);state.plots[i]={crop:null,planted:0};closeModal();save();toast('+'+c.reward+' moedas · +'+c.xp+' XP 🎉')}
-function harvestAll(){let n=0;state.plots.forEach((p,i)=>{if(ready(p)){let c=cropBy(p.crop);state.coins+=c.reward;addXp(c.xp);state.plots[i]={crop:null,planted:0};n++}});save();toast(n?`${n} canteiro(s) colhido(s)! 🌾`:'Ainda não há colheitas prontas.')}
-function addXp(x){state.xp+=x;while(state.xp>=100){state.xp-=100;state.level++;state.coins+=100;toast('🎉 Subiu para o nível '+state.level+'! +100 moedas')}}
-function openSeeds(){let empty=state.plots.findIndex(p=>!p.crop);if(empty<0){show('🌱 Canteiros ocupados','<p>Todos os canteiros estão plantados. Colha uma plantação para liberar espaço.</p>');return}show('🌱 Escolha uma semente',seedChoices(empty))}
-function openShop(){show('🏪 Loja da fazenda',`<div class="choices"><button class="choice" onclick="buyEnergy()"><b>⚡</b>+10 energia<br>🪙 50 moedas</button><button class="choice" onclick="buyCoins()"><b>💰</b>+250 moedas<br>💎 5 gemas</button><button class="choice" onclick="buySeedPack()"><b>🌱</b>Pacote de sementes<br>🪙 60 moedas</button><button class="choice" onclick="dailyReward()"><b>🎁</b>Presente diário<br>Grátis 1 vez/dia</button></div>`)}
-function buyEnergy(){if(state.coins<50||state.energy>=30){toast(state.energy>=30?'Energia já está cheia!':'Moedas insuficientes');return}state.coins-=50;state.energy=Math.min(30,state.energy+10);closeModal();save();toast('+10 energia!')}
-function buyCoins(){if(state.gems<5){toast('Gemas insuficientes!');return}state.gems-=5;state.coins+=250;closeModal();save();toast('+250 moedas!')}
-function buySeedPack(){if(state.coins<60){toast('Moedas insuficientes!');return}state.coins-=60;state.energy=Math.min(30,state.energy+5);closeModal();save();toast('Pacote comprado! +5 energia')}
-function dailyReward(){let day=new Date().toDateString();if(state.lastDaily===day){toast('Você já pegou seu presente hoje!');return}state.lastDaily=day;state.coins+=100;state.energy=Math.min(30,state.energy+5);save();closeModal();toast('Presente diário: +100 moedas e +5 energia 🎁')}
-function animal(type){let a={cow:{name:'Vaca Mimosa',emoji:'🐄',product:'Leite',reward:35},pig:{name:'Porquinho',emoji:'🐖',product:'Adubo',reward:22},chicken:{name:'Galinhas',emoji:'🐔',product:'Ovos',reward:28},sheep:{name:'Ovelhas',emoji:'🐑',product:'Lã',reward:30}}[type];show(a.emoji+' '+a.name,`<p>Cuide dos seus animais para produzir itens e ganhar moedas.</p><p>Produto: <b>${a.product}</b></p><button class="action" onclick="feedAnimal('${type}',${a.reward})">🥕 Alimentar e coletar · ${a.reward} moedas</button><p class="note">Ação demonstrativa: depois vamos adicionar animações e produção com tempo.</p>`)}
-function feedAnimal(type,reward){if(state.coins<10){toast('Você precisa de 10 moedas para alimentar!');return}state.coins-=10;state.coins+=reward;addXp(4);state.animals[type]=(state.animals[type]||0)+1;closeModal();save();toast('Animal cuidado! '+(reward-10)+' moedas de lucro ❤️')}
-function openMissions(){show('📋 Missões da fazenda',`<p>🌽 Plante 3 tipos de sementes</p><p>🐄 Cuide de um animal</p><p>🌾 Colha suas plantações</p><p><b>Recompensa:</b> 150 moedas + 25 XP</p><button class="action" onclick="missionReward()">Resgatar recompensa (teste)</button>`)}
-function missionReward(){if(state.missionClaimed){toast('Recompensa já resgatada!');return}if(state.xp<20){toast('Continue plantando e cuidando dos animais!');return}state.missionClaimed=true;state.coins+=150;addXp(25);closeModal();save();toast('Missão concluída! +150 moedas')}
-function openBuild(){show('🔨 Construções',`<div class="choices"><button class="choice" onclick="build('🌷 Canteiro de flores',100)"><b>🌷</b>Flores<br>🪙 100</button><button class="choice" onclick="build('🐓 Galinheiro',250)"><b>🐓</b>Galinheiro<br>🪙 250</button><button class="choice" onclick="build('🏡 Casinha',400)"><b>🏡</b>Casinha<br>🪙 400</button><button class="choice" onclick="build('🌳 Árvores',150)"><b>🌳</b>Árvores<br>🪙 150</button></div>`)}
-function build(name,cost){if(state.coins<cost){toast('Moedas insuficientes!');return}state.coins-=cost;let emoji=name.split(' ')[0];state.buildings.push({name,emoji});closeModal();save();toast(name+' construído na fazenda! 🏡')}
-function expandFarm(){if(state.expanded){toast('Sua fazenda já foi expandida!');return}show('🗺️ Expandir fazenda',`<p>Abra mais espaço para novas plantações, animais e construções.</p><p>Preço: <b>🪙 1.000 moedas</b></p><button class="action" onclick="doExpand()">DESBLOQUEAR TERRENO</button>`)}
-function doExpand(){if(state.coins<1000){toast('Junte mais moedas para expandir!');return}state.coins-=1000;state.expanded=true;while(state.plots.length<6)state.plots.push({crop:null,planted:0});closeModal();save();toast('Dois novos canteiros desbloqueados! 🎉')}
-setInterval(()=>{render();if(document.getElementById('modalback').classList.contains('show')){let title=document.getElementById('modalTitle').textContent;if(title.includes('Trigo')||title.includes('Cenoura')||title.includes('Morango')||title.includes('Alface')||title.includes('Milho')){}}},1000);
-render();
-
-/* animais andando pelo cercado */
-const PENS={pig:[[29.5,72],[33,70.6],[37,72.5],[36,76.5],[31.5,77],[33.4,74.6],[30.5,74.5]],sheep1:[[44,86.5],[47.5,85.2],[45.5,89.5],[49,88.5],[43,88.5]],sheep2:[[52.5,86.5],[56,87.5],[54,89.6],[51,88.8],[57,85.8]]};
-const WALK={};
-function initWalkers(){for(const id in PENS){const el=document.getElementById('w_'+id);if(!el)continue;
-  WALK[id]={el,x:+el.dataset.hx,y:+el.dataset.hy,tx:+el.dataset.hx,ty:+el.dataset.hy,wait:1+Math.random()*2,face:1,t:Math.random()*9,spd:id==='pig'?2.2:1.5}}}
-let lastW=performance.now();
-function stepWalkers(now){const dt=Math.min(.05,(now-lastW)/1000);lastW=now;
- for(const id in WALK){const a=WALK[id];a.t+=dt;const dx=a.tx-a.x,dy=a.ty-a.y,d=Math.hypot(dx,dy);let walking=false;
-  if(d<.15){a.wait-=dt;if(a.wait<=0){const p=PENS[id][Math.floor(Math.random()*PENS[id].length)];a.tx=p[0];a.ty=p[1];a.wait=1.5+Math.random()*3.5}}
-  else{const v=a.spd*dt;a.x+=dx/d*Math.min(v,d);a.y+=dy/d*Math.min(v,d)*1;walking=true;if(Math.abs(dx)>.05)a.face=dx>0?-1:1}
-  const bob=walking?Math.abs(Math.sin(a.t*9))*-3:0,tilt=walking?Math.sin(a.t*9)*3:0,eat=!walking&&Math.sin(a.t*1.3)>.6?6:0;
-  a.el.style.left=a.x+'%';a.el.style.top=a.y+'%';a.el.style.zIndex=1;
-  a.el.style.transform=`translateY(${bob}%) scaleX(${a.face}) rotate(${tilt+eat*(id==='pig'?.3:1)}deg)`}
- const pg=WALK.pig,ph=document.getElementById('pig');if(pg&&ph){ph.style.left=pg.x+'%';ph.style.top=(pg.y-6)+'%'}
- const s1=WALK.sheep1,sh=document.getElementById('sheepHot');if(s1&&sh){sh.style.left=s1.x+'%';sh.style.top=(s1.y-6)+'%'}
- requestAnimationFrame(stepWalkers)}
-initWalkers();requestAnimationFrame(stepWalkers);
-/* canteiros: terra quando vazio, brotos crescendo, desenho quando pronto */
-const PLOTPOS=[[42,47],[58,57],[69,65],[86,56],[67,46],[79,66],[50,62],[90,64]];
-const CROPCOL={wheat:'#e7b93a',corn:'#f2cf3b',carrot:'#f07f22',strawberry:'#e0303d',lettuce:'#8fd14f'};
-const SPOTS=[[22,38],[45,30],[70,40],[30,62],[55,55],[78,64],[42,82],[66,80]];
-function leafSVG(col,g){return `<svg viewBox="0 0 20 24"><path d="M10 24C10 16 9 12 10 8" stroke="#3d8a2e" stroke-width="2" fill="none"/><path d="M10 14C4 13 2 8 3 5c4 0 7 3 7 9z" fill="#5cb83e"/><path d="M10 12c5-1 7-6 7-9-4 0-7 3-7 9z" fill="#4aa335"/>${g>.65?`<circle cx="10" cy="6" r="${2+g*2.5}" fill="${col}"/>`:''}</svg>`}
-function renderBeds(){const mc=document.getElementById('mapCanvas');
- state.plots.forEach((p,i)=>{const pos=PLOTPOS[i]||[60,60];let b=document.getElementById('bed'+i);
-  if(!b){if(!document.getElementById('plot'+(i+1)))return;b=document.createElement('div');b.className='bed';b.id='bed'+i;b.style.left=pos[0]+'%';b.style.top=pos[1]+'%';mc.appendChild(b);b.dataset.k=''}
-  const pl=document.getElementById('plot'+(i+1));if(pl){pl.style.left=pos[0]+'%';pl.style.top=pos[1]+'%'}
-  const r=ready(p),g=p.crop?pct(p)/100:0,key=(p.crop||'')+'|'+(r?'r':Math.floor(g*10));
-  b.classList.toggle('ready',!!r);if(b.dataset.k===key)return;b.dataset.k=key;
-  b.innerHTML=p.crop&&!r?SPOTS.map(([x,y])=>`<span class="sp" style="left:${x}%;top:${y}%;transform:scale(${.35+g*.75})">${leafSVG(CROPCOL[p.crop]||'#e7b93a',g)}</span>`).join(''):''})}
-let farmRotated=false,panX=null,panY=null,zm=null,zmMin=1;const MAPW=1180,MAPH=675;
-function fitRotated(){const m=document.getElementById('mapCanvas'),sc=m.parentElement,sw=sc.clientWidth,sh=sc.clientHeight;if(!sw||!sh)return;
- if(farmRotated){const k=Math.max(sh/MAPW,sw/MAPH);m.style.width=MAPW*k+'px';m.style.height=MAPH*k+'px';m.style.left='50%';m.style.top='50%';return}
- const kc=Math.max(sw/MAPW,sh/MAPH);zmMin=Math.min(sw/MAPW,sh/MAPH)/kc;if(zm===null)zm=sh>sw?Math.max(zmMin,Math.min(1,1.9*sw/MAPW/kc)):1;zm=Math.max(zmMin,zm);const k=kc*zm,w=MAPW*k,h=MAPH*k;m.style.width=w+'px';m.style.height=h+'px';
- if(panX===null){panX=sw/2-w*.55;panY=sh/2-h*.55}
- panX=w<=sw?(sw-w)/2:Math.min(0,Math.max(sw-w,panX));panY=h<=sh?(sh-h)/2:Math.min(0,Math.max(sh-h,panY));m.style.left=panX+'px';m.style.top=panY+'px'}
-addEventListener('resize',fitRotated);new ResizeObserver(fitRotated).observe(document.getElementById('mapCanvas').parentElement);
-(function(){const m=document.getElementById('mapCanvas'),P=new Map();let d=null,moved=false,pin=null;
- const sc=m.parentElement,rel=e=>{const r=sc.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
- m.addEventListener('pointerdown',e=>{P.set(e.pointerId,rel(e));if(P.size===1){d={x:e.clientX,y:e.clientY,px:panX,py:panY};moved=false}
-  if(P.size===2&&!farmRotated){const[a,b]=[...P.values()];pin={d:Math.hypot(a.x-b.x,a.y-b.y),z:zm,mx:(a.x+b.x)/2,my:(a.y+b.y)/2,px:panX,py:panY};moved=true;d=null}});
- addEventListener('pointermove',e=>{if(P.has(e.pointerId))P.set(e.pointerId,rel(e));
-  if(pin&&P.size>=2){const[a,b]=[...P.values()],nd=Math.hypot(a.x-b.x,a.y-b.y),nz=Math.min(3,Math.max(zmMin,pin.z*nd/pin.d)),f=nz/pin.z;
-   zm=nz;panX=(a.x+b.x)/2-(pin.mx-pin.px)*f;panY=(a.y+b.y)/2-(pin.my-pin.py)*f;fitRotated();return}
-  if(!d||farmRotated)return;const dx=e.clientX-d.x,dy=e.clientY-d.y;if(!moved&&Math.hypot(dx,dy)<10)return;moved=true;panX=d.px+dx;panY=d.py+dy;fitRotated()});
- const up=e=>{P.delete(e.pointerId);if(P.size<2)pin=null;if(P.size===0)d=null};addEventListener('pointerup',up);addEventListener('pointercancel',up);
- m.addEventListener('click',e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true);
- sc.addEventListener('wheel',e=>{e.preventDefault();const p=rel(e);zoomAt(e.deltaY<0?1.15:.87,p.x,p.y)},{passive:false})})();
-function zoomAt(f,x,y){if(farmRotated)return;const nz=Math.min(3,Math.max(zmMin,zm*f)),r=nz/zm;zm=nz;panX=x-(x-panX)*r;panY=y-(y-panY)*r;fitRotated()}
-function zoomBy(f){const sc=document.getElementById('mapCanvas').parentElement;if(farmRotated){toast('Volte o mapa para a posição normal para usar o zoom');return}zoomAt(f,sc.clientWidth/2,sc.clientHeight/2)}
-function zoomReset(){zm=null;panX=null;panY=null;fitRotated()}
-/* trator: colhe tudo que está pronto, com uma voltinha */
-let tractorBusy=false;function useTractor(){if(tractorBusy)return;const n=state.plots.filter(ready).length;
- if(!n){toast('🚜 Nada pronto para colher ainda. O trator volta quando algo amadurecer!');return}
- if(state.energy<2){toast('⚡ O trator precisa de 2 de energia');return}
- tractorBusy=true;state.energy-=2;const t=document.getElementById('tractorSpr');t.classList.remove('idle');t.classList.add('drive');
- setTimeout(()=>{harvestAll();toast('🚜 O trator colheu '+n+' canteiro'+(n>1?'s':'')+'!')},900);
- setTimeout(()=>{t.classList.remove('drive');t.classList.add('idle');tractorBusy=false},1850)}
-setTimeout(fitRotated,0);
-function rotateFarm(){farmRotated=!farmRotated;document.getElementById('mapCanvas').classList.toggle('rotated',farmRotated);fitRotated();if(farmRotated){zm=null}toast(farmRotated?'Mapa girado! Toque novamente para voltar.':'Mapa na posição normal. Arraste para passear pela fazenda.')}
-// Pequena animação contínua e atualização de crescimento.
-setInterval(()=>{document.querySelectorAll('.animal-hot').forEach((a,i)=>a.style.transform='translateY('+Math.sin(Date.now()/500+i)*3+'px)')},120);
-</script></body></html>
+const canvas=document.getElementById('world'),ctx=canvas.getContext('2d');
+const names=['map','house','barn','silo','windmill','well','market','tractor','cow','pig','sheep','chicken','dog','pen','empty_plot','wheat_1','wheat_2','wheat_3','corn_1','corn_2','corn_3','carrot_1','carrot_2','carrot_3','strawberry_1','strawberry_2','strawberry_3','lettuce_1','lettuce_2','lettuce_3','apple_tree','flower_bush','pine_tree','willow_tree','gate','cart','crate','barrel'];
+const img={};names.forEach(n=>{img[n]=new Image();img[n].src='images/'+n+'.png'});
+const W=1536,H=1024;let scale=1,camX=0,camY=0,viewW=0,viewH=0,last=0,selectedCrop='wheat',coins=250,energy=30,xp=0,level=1,land=1,animalProducts={cow:0,pig:0,sheep:0,chicken:0},dailyStamp='',tractorUntil=0;
+const FX=700,FY=625,HX=52,HY=30;let fieldN=4;let plots=[];
+function fieldSize(l){return Math.min(5,3+l)}
+function buildField(old){fieldN=fieldSize(land);let np=[];for(let i=0;i<fieldN;i++)for(let j=0;j<fieldN;j++){let c=cellCenter(i,j);np.push({i,j,x:c.x,y:c.y,crop:null,stage:0,planted:0,readyAt:0,id:np.length})}
+ (old||[]).forEach((p,k)=>{if(p&&p.crop&&np[k]){np[k].crop=p.crop;np[k].planted=p.planted;np[k].readyAt=p.readyAt}});plots=np}
+function cellCenter(i,j){let ty=FY-fieldN*HY;return{x:FX+(i-j)*HX,y:ty+(i+j+1)*HY}}
+function cellAt(x,y){let u=(x-FX)/HX,v=(y-(FY-fieldN*HY))/HY,i=Math.floor((v+u)/2),j=Math.floor((v-u)/2);if(i<0||j<0||i>=fieldN||j>=fieldN)return null;return plots[i*fieldN+j]}
+buildField();
+let animals=[{type:'cow',x:1040,y:560,dx:1,dy:0.2,product:'Leite'},{type:'pig',x:1140,y:590,dx:-.6,dy:.5,product:''},{type:'sheep',x:1200,y:540,dx:.3,dy:-.7,product:'Lã'},{type:'chicken',x:1090,y:620,dx:.8,dy:-.3,product:'Ovos'},{type:'dog',x:930,y:640,dx:-.5,dy:-.2,product:''}];
+function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??''}}catch(e){}}
+function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify({coins,energy,xp,level,land,plots,animalProducts,dailyStamp}))}
+function resize(){let r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);viewW=r.width;viewH=r.height;minS=Math.min(viewW/W,viewH/H)*.98;scale=viewH>viewW?Math.max(minS,viewW*1.7/W):Math.max(viewW/W,viewH/H);camX=(W-viewW/scale)/2;camY=(H-viewH/scale)/2;clampCam();worldDraw(performance.now())}
+function drawSprite(key,x,y,w,h){let im=img[key];if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,x-w/2,y-h,w,h)}
+function worldDraw(t){ctx.clearRect(0,0,viewW,viewH);ctx.save();ctx.scale(scale,scale);ctx.translate(-camX,-camY);
+if(img.map?.complete)ctx.drawImage(img.map,0,0,W,H);
+// Buildings are separate PNG objects layered over the illustrated terrain.
+drawSprite('house',280,430,270,270);drawSprite('barn',1210,360,250,230);drawSprite('silo',1370,310,100,220);drawSprite('windmill',1450,520,170,260);drawSprite('well',330,610,115,160);drawSprite('market',220,610,180,175);
+// Extra farm details
+if(land>1)drawSprite('apple_tree',410,470,150,170);
+// Garden plots and crop stages
+{let ty=FY-fieldN*HY,P=(a,b)=>[FX+(a-b)*HX,ty+(a+b)*HY];
+ const poly=(pts,f)=>{ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(q=>ctx.lineTo(q[0],q[1]));ctx.closePath();ctx.fillStyle=f;ctx.fill()};
+ let n=fieldN;poly([P(0,0),P(n,0),P(n,n),P(0,n)],'#7a4b26');
+ poly([P(n,0),P(n,n),[P(n,n)[0],P(n,n)[1]+10],[P(n,0)[0],P(n,0)[1]+10]],'#5b3519');poly([P(0,n),P(n,n),[P(n,n)[0],P(n,n)[1]+10],[P(0,n)[0],P(0,n)[1]+10]],'#6b3f1e');
+ plots.forEach(p=>{let a=p.i,b=p.j,dry=!p.crop;poly([P(a+.06,b+.06),P(a+.94,b+.06),P(a+.94,b+.94),P(a+.06,b+.94)],dry?'#8f5c30':'#6e4322');
+  ctx.strokeStyle='rgba(60,32,12,.45)';ctx.lineWidth=2;for(let r=1;r<4;r++){let q1=P(a+.12,b+r*.25),q2=P(a+.88,b+r*.25);ctx.beginPath();ctx.moveTo(q1[0],q1[1]);ctx.lineTo(q2[0],q2[1]);ctx.stroke()}});
+ ctx.strokeStyle='#c98a4a';ctx.lineWidth=5;ctx.beginPath();[P(0,0),P(n,0),P(n,n),P(0,n)].forEach((q,k)=>k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.stroke();
+ [...plots].sort((p,q)=>(p.i+p.j)-(q.i+q.j)).forEach(p=>{if(!p.crop)return;let f=(Date.now()-p.planted)/Math.max(1,p.readyAt-p.planted);let st=f>=1?3:f>=.45?2:1;p.stage=st;let sz=st===1?.6:st===2?.8:1;
+  let im=img[p.crop+'_'+st];if(im&&im.naturalWidth){let w=72*sz,h=w*im.naturalHeight/im.naturalWidth;let bob=st===3?Math.sin(t/300+p.id)*1.5:0;ctx.drawImage(im,p.x-w/2,p.y+12-h+bob,w,h)}
+  if(st===3){ctx.save();ctx.globalAlpha=.5+.4*Math.sin(t/220+p.id);ctx.fillStyle='#fff7b0';ctx.font='bold 18px sans-serif';ctx.textAlign='center';ctx.fillText('✦',p.x+16,p.y-28);ctx.restore()}
+  else{let bw=38;ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(p.x-bw/2,p.y+14,bw,5);ctx.fillStyle='#ffd34d';ctx.fillRect(p.x-bw/2,p.y+14,bw*Math.min(1,f),5)}});
+ floaters=floaters.filter(fl=>(fl.t+=0.016)<1.2);floaters.forEach(fl=>{ctx.save();ctx.globalAlpha=1-fl.t/1.2;ctx.font='900 20px sans-serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='#fff';ctx.fillStyle=fl.neg?'#b3261e':'#2e7d32';ctx.strokeText(fl.txt,fl.x,fl.y-fl.t*40);ctx.fillText(fl.txt,fl.x,fl.y-fl.t*40);ctx.restore()})}
+// Pen and wandering animals; animals turn in their travel direction.
+drawSprite('pen',1105,640,470,300);
+[...animals].sort((p,q)=>p.y-q.y).forEach(a=>{let im=img[a.type];if(!im?.complete||!im.naturalWidth)return;let w=SZ[a.type]||80,h=w*im.naturalHeight/im.naturalWidth;ctx.save();ctx.translate(a.x,a.y);ctx.fillStyle='rgba(60,35,10,.25)';ctx.beginPath();ctx.ellipse(0,-3,w*.36,w*.1,0,0,7);ctx.fill();let step=a.pause>0?0:Math.abs(Math.sin(t/140+a.x))*-4;ctx.rotate(a.pause>0?0:Math.sin(t/140+a.x)*.04);ctx.scale(a.dx<0?-1:1,1);ctx.drawImage(im,-w/2,-h+step,w,h);ctx.restore()});
+if(Date.now()<tractorUntil){let q=(Date.now()-(tractorUntil-4500))/4500;drawSprite('tractor',500+q*420,565,155,145)}else drawSprite('tractor',360,790,125,110);
+ctx.restore();}
+const SZ={cow:125,pig:100,sheep:95,chicken:58,dog:78};
+function bounds(a){return a.type==='dog'?[860,990,560,700]:[975,1235,520,640]}
+function tick(ts){let dt=Math.min((ts-last)/1000,.05)||0;last=ts;animals.forEach(a=>{if(a.pause>0){a.pause-=dt;return}if(Math.random()<dt*.25){a.pause=1+Math.random()*2.5;a.dx=(Math.random()-.5)*2;a.dy=(Math.random()-.5)*1.2;return}let sp=a.type==='chicken'?34:26;a.x+=a.dx*dt*sp;a.y+=a.dy*dt*sp;let[b0,b1,b2,b3]=bounds(a);if(a.x<b0||a.x>b1){a.dx*=-1;a.x=Math.max(b0,Math.min(b1,a.x))}if(a.y<b2||a.y>b3){a.dy*=-1;a.y=Math.max(b2,Math.min(b3,a.y))}});worldDraw(ts);requestAnimationFrame(tick)}
+function updateHud(){document.getElementById('coins').textContent=coins;document.getElementById('energy').textContent=energy;document.getElementById('xp').textContent=xp;document.getElementById('level').textContent=level}
+function gainXP(n){xp+=n;while(xp>=level*100){xp-=level*100;level++;coins+=50;toast('Subiu para o nível '+level+'! +50 moedas')}updateHud();save()}
+function toast(s){let e=document.getElementById('toast');e.textContent=s;e.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>e.style.opacity=0,1900)}
+function choosePlant(c){selectedCrop=c;document.querySelectorAll('.action').forEach(x=>x.classList.remove('selected'));document.getElementById('plantBtn').classList.add('selected');toast('Semente selecionada: '+({wheat:'trigo',corn:'milho',carrot:'cenoura',strawberry:'morango',lettuce:'alface'}[c]))}
+function plantAt(p,quiet){if(p.crop&&Date.now()>=p.readyAt){let value={wheat:18,corn:24,carrot:30,strawberry:38,lettuce:32}[p.crop];coins+=value;energy=Math.min(30,energy+1);gainXP(12);p.crop=null;floaters.push({x:p.x,y:p.y-30,txt:'+'+value,t:0});if(!quiet)toast('Colheita realizada! +'+value+' moedas');updateHud();save();return}if(p.crop){if(!quiet)toast('A plantação ainda está crescendo');return}if(energy<1){toast('Sem energia. Aguarde ou receba o presente diário.');return}let cost={wheat:3,corn:5,carrot:6,strawberry:8,lettuce:7}[selectedCrop];if(coins<cost){toast('Moedas insuficientes');return}coins-=cost;floaters.push({x:p.x,y:p.y-30,txt:'-'+cost,t:0,neg:1});energy--;p.crop=selectedCrop;p.planted=Date.now();p.readyAt=Date.now()+({wheat:35000,corn:50000,carrot:60000,strawberry:75000,lettuce:65000}[selectedCrop]);p.stage=1;updateHud();save();if(!quiet)toast('Semente plantada! Dica: arraste o dedo pela plantação para plantar vários.');}
+let floaters=[];
+function collectAnimal(a){let key=a.type;if(!a.product){toast('O '+(key==='dog'?'cachorro':'porquinho')+' está feliz!');gainXP(2);return}if((animalProducts[key]||0)>=1){toast('Este animal já entregou '+a.product.toLowerCase()+' hoje');return}animalProducts[key]=1;let reward=key==='cow'?28:key==='chicken'?20:25;coins+=reward;gainXP(8);toast(a.product+' recebido! +'+reward+' moedas');updateHud();save()}
+function hit(x,y){let c=cellAt(x,y);if(c){plantAt(c);return true}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
+let pointers=new Map(),drag=null,pinch=null,minS=.3;
+function toWorld(cx,cy){let r=canvas.getBoundingClientRect();return {x:(cx-r.left)/scale+camX,y:(cy-r.top)/scale+camY}}
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1){drag={id:e.pointerId,x:e.clientX,y:e.clientY,camX,camY,moved:false};let w=toWorld(e.clientX,e.clientY),c=cellAt(w.x,w.y);if(c){drag.paint=new Set([c.id]);drag.first=c}}if(pointers.size===2){let a=[...pointers.values()];pinch={dist:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),scale,midX:(a[0].x+a[1].x)/2,midY:(a[0].y+a[1].y)/2};drag=null}});
+canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2&&pinch){let a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),ns=Math.max(minS,Math.min(2.2,pinch.scale*d/pinch.dist));let mx=(a[0].x+a[1].x)/2,my=(a[0].y+a[1].y)/2,r=canvas.getBoundingClientRect();let wx=(pinch.midX-r.left)/scale+camX,wy=(pinch.midY-r.top)/scale+camY;scale=ns;camX=wx-(mx-r.left)/scale;camY=wy-(my-r.top)/scale;clampCam();return}if(drag&&drag.id===e.pointerId&&drag.paint){let w=toWorld(e.clientX,e.clientY),c=cellAt(w.x,w.y);if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>6){if(!drag.moved){drag.moved=true;plantAt(drag.first,true)}if(c&&!drag.paint.has(c.id)){drag.paint.add(c.id);plantAt(c,true)}}return}if(drag&&drag.id===e.pointerId){let dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)drag.moved=true;camX=drag.camX-dx/scale;camY=drag.camY-dy/scale;clampCam()}});
+function clampCam(){if(W*scale<=viewW)camX=(W-viewW/scale)/2;else camX=Math.max(-30,Math.min(W-viewW/scale+30,camX));if(H*scale<=viewH)camY=(H-viewH/scale)/2;else camY=Math.max(-30,Math.min(H-viewH/scale+30,camY))}
+function zoomBy(f){let cx=camX+viewW/scale/2,cy=camY+viewH/scale/2;scale=Math.max(minS,Math.min(2.2,scale*f));camX=cx-viewW/scale/2;camY=cy-viewH/scale/2;clampCam()}
+function zoomReset(){resize()}
+canvas.addEventListener('pointerup',e=>{let p=pointers.get(e.pointerId);if(pointers.size===1&&drag&&!drag.moved){let w=toWorld(e.clientX,e.clientY);if(!hit(w.x,w.y)){} }pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;if(pointers.size===0)drag=null});canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);drag=null;pinch=null});
+function useTractor(){let ready=plots.filter(p=>p.crop&&Date.now()>=p.readyAt);if(!ready.length){toast('Ainda não há plantações prontas');return}if(energy<2){toast('O trator precisa de 2 energias');return}energy-=2;tractorUntil=Date.now()+4500;setTimeout(()=>{ready.forEach(p=>{coins+=({wheat:18,corn:24,carrot:30,strawberry:38,lettuce:32}[p.crop]);p.crop=null;gainXP(10)});updateHud();save();toast('Trator colheu '+ready.length+' canteiro(s)!')},4500);updateHud();save()}
+function openPanel(title,body){let p=document.getElementById('panel');p.innerHTML='<button class="close" onclick="closePanels()">×</button><h2>'+title+'</h2>'+body;p.style.display='block'}function closePanels(){document.getElementById('panel').style.display='none'}
+function openShop(){let crops=[['wheat','Trigo',3],['corn','Milho',5],['carrot','Cenoura',6],['strawberry','Morango',8],['lettuce','Alface',7]];let html=`<p>Escolha uma semente para plantar. O tempo de crescimento é curto nesta versão de demonstração.</p><div class="shopgrid">${crops.map(([k,n,c])=>`<div class="shopitem"><img src="images/${k}_3.png"><strong>${n}</strong><span>${c} moedas</span><br><button onclick="buySeed('${k}')">Selecionar</button></div>`).join('')}</div><hr><div class="shopgrid"><div class="shopitem"><img src="images/cow.png"><strong>Vaca</strong><button onclick="buyAnimal('cow')">Comprar 120</button></div><div class="shopitem"><img src="images/chicken.png"><strong>Galinha</strong><button onclick="buyAnimal('chicken')">Comprar 65</button></div></div>`;openPanel('Loja da fazenda',html)}
+function buySeed(k){choosePlant(k);closePanels()}function buyAnimal(k){let c=k==='cow'?120:65;if(coins<c){toast('Moedas insuficientes');return}coins-=c;animals.push({type:k,x:1040+Math.random()*150,y:540+Math.random()*80,dx:Math.random()>.5?1:-1,dy:.4,product:k==='cow'?'Leite':'Ovos'});animalProducts[k]=0;updateHud();save();toast('Animal comprado!');closePanels()}
+function openMissions(){openPanel('Missões da fazenda','<div class="mission"><b>Primeira colheita</b><p>Colha 3 canteiros para ganhar 80 moedas e 30 XP.</p><button class="panelbtn" onclick="claimMission(3)">Resgatar recompensa</button></div><div class="mission"><b>Cuide dos animais</b><p>Recolha leite, ovos ou lã.</p><button class="panelbtn" onclick="claimMission(2)">Resgatar 40 moedas</button></div><div class="mission"><b>Pequena expansão</b><p>Abra mais espaço para sua fazenda.</p><button class="panelbtn" onclick="expandLand();closePanels()">Expandir terreno</button></div>')}
+function claimMission(n){coins+=n===3?80:40;gainXP(30);updateHud();save();toast('Missão concluída! Recompensa recebida.');closePanels()}
+function dailyGift(){let today=new Date().toISOString().slice(0,10);if(dailyStamp===today){toast('O presente de hoje já foi recebido');return}dailyStamp=today;coins+=100;energy=Math.min(30,energy+10);gainXP(15);updateHud();save();toast('Presente diário: 100 moedas e 10 energias!')}
+function expandLand(){let cost=land===1?300:land===2?600:1000;if(coins<cost){toast('Precisa de '+cost+' moedas para expandir');return}coins-=cost;if(land>=2){coins+=cost;toast('A plantação já está no tamanho máximo');return}land++;buildField(plots);gainXP(40);updateHud();save();toast('Plantação maior: agora '+fieldN+'×'+fieldN+' canteiros!')}
+load();updateHud();window.addEventListener('resize',resize);resize();requestAnimationFrame(tick);setInterval(()=>{updateHud();save()},5000);
+</script><div style="position:fixed;right:10px;bottom:96px;display:flex;flex-direction:column;gap:8px;z-index:20"><button class="zb" onclick="zoomBy(1.25)" aria-label="Aproximar">+</button><button class="zb" onclick="zoomBy(.8)" aria-label="Afastar">−</button><button class="zb" onclick="zoomReset()" aria-label="Centralizar">⌖</button></div><style>.zb{width:46px;height:46px;border-radius:50%;border:2px solid #fff;background:linear-gradient(#ffe08a,#e79a24);color:#5a3410;font-weight:900;font-size:22px;box-shadow:0 3px 8px #0004;padding:0}</style></body></html>
