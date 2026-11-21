@@ -104,11 +104,13 @@ if(moving&&moving.kind==='field')drawFoot(moving);drawPens(t);
 {let T=OBJ.tractor;if(TR){}else{drawSprite('tractor',T.x,T.y,T.w,T.h);if(moving&&moving.o===T)drawFoot(moving)}}
 drawBubbles(t);ctx.restore();}
 const SZ={cow:100,pig:80,sheep:78,chicken:48,dog:72};
-function pickTarget(a){if(a.type==='dog'){let[b0,b1,b2,b3]=bounds(a);a.tx=b0+Math.random()*(b1-b0);a.ty=b2+Math.random()*(b3-b2);return}
+function inAnyFoot(x,y){return allItems().some(it=>{let F=fpOf(it.kind,it.o);return Math.abs(x-F.cx)/F.r+Math.abs(y-F.cy)/(F.r*HY/HX)<=1.05})}
+function pickTarget(a){if(a.type==='dog'){let[b0,b1,b2,b3]=bounds(a);for(let n=0;n<40;n++){let x=b0+Math.random()*(b1-b0),y=b2+Math.random()*(b3-b2);if(!inAnyFoot(x,y)){a.tx=x;a.ty=y;return}}
+  for(let n=0;n<200;n++){let x=150+Math.random()*1250,y=350+Math.random()*550;if(!inAnyFoot(x,y)&&!paintedAt(x,y)){a.tx=x;a.ty=y;return}}a.tx=a.x;a.ty=a.y;return}
  let q=walkArea(penOf(a));for(let n=0;n<30;n++){let x=q.x+(Math.random()*2-1)*q.a*.9,y=q.y+(Math.random()*2-1)*q.b*.9;
   if(inPenOf(a,x,y)&&animals.every(o=>o===a||penOf(o)!==penOf(a)||o.tx===undefined||Math.hypot(o.tx-x,(o.ty-y)*1.8)>70)){a.tx=x;a.ty=y;return}}a.tx=q.x;a.ty=q.y}
 function bounds(a){return a.type==='dog'?[925,1005,575,640]:[1000,1210,440,575]}
-const PENS={cow:{x:1105,y:640,w:430,h:275,nome:'Curral'},sheep:{x:485,y:700,w:280,h:178,nome:'Ovelhas'},pig:{x:1330,y:1010,w:290,h:185,nome:'Chiqueiro'},chicken:{x:630,y:435,w:250,h:160,nome:'Galinheiro'}};
+const PENS={cow:{x:1105,y:640,w:430,h:275,nome:'Curral'},sheep:{x:480,y:645,w:280,h:178,nome:'Ovelhas'},pig:{x:1330,y:1010,w:290,h:185,nome:'Chiqueiro'},chicken:{x:630,y:435,w:250,h:160,nome:'Galinheiro'}};
 function penOf(a){return PENS[a.type]||PENS.cow}
 function pin(P){return{x:P.x,y:P.y-P.h*.48,a:P.w*.30,b:P.h*.2}}
 function walkArea(P){return{x:P.x,y:P.y-P.h*.56,a:P.w*.2,b:P.h*.1}}
@@ -155,18 +157,28 @@ let moving=null;
 function fpOf(kind,o){let r,cx,cy;
  if(kind==='obj'){r=o.w*.4;cx=o.x;cy=o.y-r*HY/HX*.9}
  else if(kind==='pen'){r=o.w*.46;cx=o.x;cy=o.y-r*HY/HX-o.h*.04}
- else{r=o.n*HX;cx=o.x;cy=o.y-o.n*HY}
+ else{r=o.n*HX;cx=o.x;cy=o.y}
  return{u:(cx/HX+cy/HY)/2,v:(cy/HY-cx/HX)/2,a:r/(2*HX),cx,cy,r}}
 function allItems(){let L=[];for(const k in OBJ)L.push({kind:'obj',key:'o'+k,o:OBJ[k]});for(const k in PENS)L.push({kind:'pen',key:'p'+k,o:PENS[k]});
  fields().forEach(F=>L.push({kind:'field',key:'f'+F.id,o:F.id==='main'?{x:FX,y:FY,n:fieldN}:F}));return L}
 function overlaps(item){let A=fpOf(item.kind,item.o);return allItems().some(b=>{if(b.key===item.key)return false;let B=fpOf(b.kind,b.o),m=(A.a+B.a)*.94;return Math.abs(A.u-B.u)<m&&Math.abs(A.v-B.v)<m})}
 function keyOf(m){if(m.kind==='field')return'fmain';for(const k in OBJ)if(OBJ[k]===m.o)return'o'+k;for(const k in PENS)if(PENS[k]===m.o)return'p'+k;return''}
 function itemOf(m){return{kind:m.kind,key:keyOf(m),o:m.kind==='field'?{x:FX,y:FY,n:fieldN}:m.o}}
-function drawFoot(m){let F=fpOf(m.kind,itemOf(m).o),ok=!overlaps(itemOf(m)),hw=F.r,hh=F.r*HY/HX;
+function drawFoot(m){let F=fpOf(m.kind,itemOf(m).o),ok=placeOk(itemOf(m)),hw=F.r,hh=F.r*HY/HX;
  ctx.save();ctx.fillStyle=ok?'rgba(60,200,80,.45)':'rgba(230,50,40,.5)';ctx.strokeStyle=ok?'#2e9e3a':'#c62828';ctx.lineWidth=4;
  ctx.beginPath();ctx.moveTo(F.cx,F.cy-hh);ctx.lineTo(F.cx+hw,F.cy);ctx.lineTo(F.cx,F.cy+hh);ctx.lineTo(F.cx-hw,F.cy);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore()}
+
+/* mapa do que já está pintado no chão (estrada, árvore, água, cerca, flores) */
+const MASK=(()=>{const b=atob('AAAAAAAfyHcAAAAAAAAAAAG//PeAAAAAAAAAAGf////AAAAAAAAAAP/////eT4AAAAAAAP///////8AAAAAAAf///////+AAAAAAAf//////8PAAAAAAA///////8HgAAAABw///////4HwAAAAH//+d////zPwAAAAP//4P//////wAAAAf//4f//////wAAAAf//w///////8AAAA///5////////AAAB///9////////gAHz///////////jwAP///9////////fwAf////+P///////4A4////8H///////4A7////+D///////4A/z////j///////4B/3//////////z/wD////7///////5/gDn///w///////5/wH///7hv//////7/4H///wDz////gBz/8H//+gBn///wAAB/+H//8AAD///gAAAf/P//wAAB///AAAAn/f//gAAAf/+AAAd/////AAAAf//hAA/////+AAAAOf/7gD////8AAAAAAH//4n////4AAAAANP///3////ABAAAAf////////+ADgAAA/////////+AHgAAB//////////A/wYAH//////////n/w8AP//+P////////wYAP//4D////////8DAH//gA/////////HwP//wB////8f///n4///z/////wH////7//nn/////AD//////+Pn////8AA//////8P3////wAAP//+//+Hj////AAAD////+PAB///8AAAA////8HgA///wAAAAf////PwH///AAAAAH/////4f//8AAAAAB/////w///4AAAAAAf////////gAAAAAAH///////+AAAAAAAB///////4AAAAAAAAf//////gAAAAAAAAH/////+AAAAAAAAAD/////4AAAAAAAAAA/////gAAAAAAAAAAP///+AAAAAAAAAAAD///4AAAAAAAAAAAA///gAAAAAAAAAAAAP/+AAAAAAAAAAAAAD+AAAAAAAA'),gw=96,gh=64,a=new Uint8Array(gw*gh);for(let i=0;i<a.length;i++)a[i]=(b.charCodeAt(i>>3)>>(7-(i&7)))&1;return{a,gw,gh,c:16}})();
+function paintedAt(x,y){if(x<0||y<0||x>=W||y>=H)return 0;let gx=Math.floor(x/16),gy=Math.floor(y/16);return MASK.a[gy*MASK.gw+gx]}
+function decorAt(x,y){return DECOR.some(d=>Math.hypot(d.x-x,(d.y-y)*1.6)<38)}
+function zoneHit(x,y){return ZONES.some(z=>!zonesOwned.includes(z.id)&&Math.abs(x-z.x)/(z.n*HX)+Math.abs(y-z.y)/(z.n*HY)<=1)}
+function blockedFrac(item){let F=fpOf(item.kind,item.o),hw=F.r,hh=F.r*HY/HX,n=0,b=0;
+ for(let yy=-hh;yy<=hh;yy+=10)for(let xx=-hw;xx<=hw;xx+=10){if(Math.abs(xx)/hw+Math.abs(yy)/hh>.92)continue;n++;let x=F.cx+xx,y=F.cy+yy;if(paintedAt(x,y)||decorAt(x,y)||zoneHit(x,y))b++}
+ return n?b/n:0}
+function placeOk(item){if(item.key==='otractor')return !overlaps(item);return !overlaps(item)&&blockedFrac(item)<=.12}
 const DEF={};
-function fixOverlaps(){let changed=false;for(const it of allItems()){if(it.kind==='field'&&it.key!=='fmain')continue;if(!overlaps(it))continue;
+function fixOverlaps(){let changed=false;for(const it of allItems()){if(it.kind==='field'&&it.key!=='fmain')continue;let d0=DEF[it.key],cx=it.kind==='field'?FX:it.o.x,cy=it.kind==='field'?FY:it.o.y,atDef=d0&&Math.abs(d0[0]-cx)<1&&Math.abs(d0[1]-cy)<1;if(!overlaps(it)&&(atDef||blockedFrac(it)<=.12))continue;
   let d=DEF[it.key];if(!d)continue;let ox=it.kind==='field'?FX:it.o.x,oy=it.kind==='field'?FY:it.o.y;
   if(it.kind==='field'){FX=d[0];FY=d[1];buildField(plots)}else{let dx=d[0]-it.o.x,dy=d[1]-it.o.y;moveBy({kind:it.kind,o:it.o},dx,dy)}
   if(overlaps(it.kind==='field'?{kind:'field',key:'fmain',o:{x:FX,y:FY,n:fieldN}}:it)){if(it.kind==='field'){FX=ox;FY=oy;buildField(plots)}else moveBy({kind:it.kind,o:it.o},ox-it.o.x,oy-it.o.y)}else changed=true}
@@ -188,7 +200,7 @@ function moveBy(m,dx,dy){let o=m.o,nx=Math.max(WX0+60,Math.min(WX1-60,o.x+dx)),n
  scene.addEventListener('pointerdown',e=>{clearTimeout(timer);if(pointers.size>0){st=null;return}st={x:e.clientX,y:e.clientY};
   timer=setTimeout(()=>{if(!st)return;let w=toWorld(st.x,st.y),m=objAt(w.x,w.y);if(!m)return;moving=m;m.sx=m.o.x;m.sy=m.o.y;last=w;drag=null;try{navigator.vibrate&&navigator.vibrate(40)}catch(_){}toast('Arraste para mudar '+(m.o.nome||'')+' de lugar');if(window.SND)SND.play('click')},450)},true);
  scene.addEventListener('pointermove',e=>{if(moving){let w=toWorld(e.clientX,e.clientY);moveBy(moving,w.x-last.x,w.y-last.y);last=w;e.stopPropagation();return}if(st&&Math.hypot(e.clientX-st.x,e.clientY-st.y)>10){clearTimeout(timer);st=null}},true);
- const end=()=>{clearTimeout(timer);st=null;if(moving){let m=moving,bad=overlaps(itemOf(m));if(bad){moveBy(m,m.sx-m.o.x,m.sy-m.o.y);toast('Não cabe aí! Voltou para o lugar anterior.');if(window.SND)SND.play('error')}else{toast('Novo lugar salvo!')}if(m.kind==='field')buildField(plots);moving=null;drag=null;save()}};
+ const end=()=>{clearTimeout(timer);st=null;if(moving){let m=moving,bad=!placeOk(itemOf(m));if(bad){moveBy(m,m.sx-m.o.x,m.sy-m.o.y);toast(overlaps(itemOf(m))?'Não cabe aí! Está em cima de outra construção.':'Não pode ficar em cima de estrada, árvore, água ou cerca.');if(window.SND)SND.play('error')}else{toast('Novo lugar salvo!')}if(m.kind==='field')buildField(plots);moving=null;drag=null;save()}};
  scene.addEventListener('pointerup',end,true);scene.addEventListener('pointercancel',end,true);
  setTimeout(()=>document.getElementById('hint').classList.add('off'),7000)})();
 
