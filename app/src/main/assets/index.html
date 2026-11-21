@@ -19,6 +19,8 @@
 @media(orientation:landscape){#top{min-height:48px}.stat{font-size:11px;padding:3px 7px}#bottom{padding-top:4px;padding-bottom:4px}.action{padding:3px;font-size:10px;flex-direction:row;justify-content:center}.action small{display:none}#panel{inset:8% 20%}}
 @media(max-width:520px){#top{padding-top:6px;padding-bottom:6px}.brand{font-size:15px!important}.stats{flex-wrap:nowrap;gap:3px}.stat{font-size:10px;padding:3px 6px;letter-spacing:0}}
 #hint{transition:opacity .8s;white-space:normal!important;text-align:center;max-width:88%;width:max-content}#hint.off{opacity:0}
+body,button{-webkit-user-select:none;user-select:none}
+#toast{white-space:normal!important;max-width:88vw;text-align:center}
 </style></head>
 <body><div id="game">
 <header id="top"><div class="brand">FAZENDA FELIZ</div><div class="stats"><div class="stat">NV <b id="level">1</b></div><div class="stat">MOEDAS <b id="coins">250</b></div><div class="stat">ENERGIA <b id="energy">30</b></div><div class="stat">XP <b id="xp">0</b></div></div></header>
@@ -37,9 +39,10 @@ const names=['lake','house','barn','silo','windmill','well','market','tractor','
 const img={};names.forEach(n=>{img[n]=new Image();img[n].src='images/'+n+'.png'});
 const W=1536,H=1024;let scale=1,camX=0,camY=0,viewW=0,viewH=0,last=0,selectedCrop='wheat',coins=250,energy=30,xp=0,level=1,land=1,animalProducts={cow:0,pig:0,sheep:0,chicken:0},dailyStamp='',tractorUntil=0;
 const WX0=-700,WX1=2300,WY0=-160,WY1=1460;let FX=700,FY=625;const HX=52,HY=30;let fieldN=4;let plots=[];let zonesOwned=[];
-const ZONES=[{id:'ne',x:1790,y:330,n:5,cost:500,lv:2,nome:'Terreno do Leste'},{id:'nw',x:-150,y:290,n:5,cost:1000,lv:3,nome:'Terreno do Oeste'},{id:'se',x:1720,y:910,n:5,cost:2000,lv:4,nome:'Terreno do Sul'},{id:'sw',x:-140,y:960,n:5,cost:3500,lv:5,nome:'Terreno da Várzea'}];
+const OLDZ={ne:500,nw:1000,se:2000,sw:3500};const ZONES_OLD=[{id:'ne',x:1790,y:330,n:5,cost:500,lv:2,nome:'Terreno do Leste'},{id:'nw',x:-150,y:290,n:5,cost:1000,lv:3,nome:'Terreno do Oeste'},{id:'se',x:1720,y:910,n:5,cost:2000,lv:4,nome:'Terreno do Sul'},{id:'sw',x:-140,y:960,n:5,cost:3500,lv:5,nome:'Terreno da Várzea'}];
+const ZONES=[];let EXTRAS=[],DECO=[],FENCES=new Set(),LAND=new Set(),landBought=0,decorGone=new Set();
 function fieldSize(l){return Math.min(5,3+l)}
-function fields(){let f=[{id:'main',x:FX,y:FY,n:fieldN}];ZONES.forEach(z=>{if(zonesOwned.includes(z.id))f.push(z)});return f}
+function fields(){return[{id:'main',x:FX,y:FY,n:fieldN},...EXTRAS]}
 function cellCenterF(F,i,j){return{x:F.x+(i-j)*HX,y:F.y-F.n*HY+(i+j+1)*HY}}
 function cellCenter(i,j){return cellCenterF({x:FX,y:FY,n:fieldN},i,j)}
 function buildField(old){fieldN=fieldSize(land);let np=[];fields().forEach(F=>{for(let i=0;i<F.n;i++)for(let j=0;j<F.n;j++){let c=cellCenterF(F,i,j);np.push({f:F.id,i,j,x:c.x,y:c.y,crop:null,stage:0,planted:0,readyAt:0,id:np.length})}});
@@ -48,9 +51,9 @@ function cellAt(x,y){for(const F of fields()){let u=(x-F.x)/HX,v=(y-(F.y-F.n*HY)
 function zoneAt(x,y){return ZONES.find(z=>!zonesOwned.includes(z.id)&&Math.abs(x-z.x)/(z.n*HX)+Math.abs(y-z.y)/(z.n*HY)<=1)}
 buildField();
 let animals=[{type:'cow',x:0,y:0,start:1,dx:1,dy:0.2,product:'Leite'},{type:'pig',x:0,y:0,start:1,dx:-.6,dy:.5,product:''},{type:'sheep',x:0,y:0,start:1,dx:.3,dy:-.7,product:'Lã'},{type:'chicken',x:0,y:0,start:1,dx:.8,dy:-.3,product:'Ovos'},{type:'dog',x:960,y:610,dx:-.5,dy:-.2,product:''}];
-function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;zonesOwned=s.zonesOwned||[];ROADS=new Set(s.roads||[]);applyLayout(s.lay);buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??'';tractorUntil=0;energyTs=s.energyTs??Date.now()}}catch(e){}}
+function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;let zo=s.zonesOwned||[];if(zo.length){let r=zo.reduce((a,z)=>a+(OLDZ[z]||0),0);coins+=r;setTimeout(()=>toast('Terrenos antigos trocados por terreno contínuo: +'+r+' moedas devolvidas',5000),1500)}ROADS=new Map((s.roads||[]).map(r=>Array.isArray(r)?r:[r,'t']));FENCES=new Set(s.fences||[]);if(s.landSet)LAND=new Set(s.landSet);landBought=s.landBought||0;EXTRAS=s.extras||[];DECO=(s.deco||[]).map(d=>makeDeco(d.c,d.x,d.y,d.id)).filter(Boolean);decorGone=new Set(s.gone||[]);applyLayout(s.lay);buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??'';tractorUntil=0;energyTs=s.energyTs??Date.now()}}catch(e){}}
 let energyTs=Date.now();
-function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify({coins,energy,xp,level,land,zonesOwned,roads:[...ROADS],lay:layout(),plots,animalProducts,dailyStamp,energyTs}))}
+function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify({coins,energy,xp,level,land,roads:[...ROADS],fences:[...FENCES],landSet:[...LAND],landBought,extras:EXTRAS,deco:DECO.map(d=>({id:d.id,c:d.c,x:d.x,y:d.y})),gone:[...decorGone],lay:layout(),plots,animalProducts,dailyStamp,energyTs}))}
 function regen(){let n=Math.floor((Date.now()-energyTs)/60000);if(n>0){if(energy<30)energy=Math.min(30,energy+n);energyTs+=n*60000;updateHud()}if(energy>=30)energyTs=Date.now()}
 function resize(){let r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);viewW=r.width;viewH=r.height;minS=Math.min(viewW/(WX1-WX0),viewH/(WY1-WY0));scale=viewH>viewW?Math.max(minS,viewW*1.7/W,viewH*.78/H):Math.max(viewW/W,viewH/H);camX=(viewH>viewW?850:W/2)-viewW/scale/2;camY=(viewH>viewW?560:H/2)-viewH/scale/2;clampCam();worldDraw(performance.now())}
 
@@ -58,7 +61,7 @@ function resize(){let r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelR
 const inIsland=(x,y)=>Math.abs(x-800)/1080+Math.abs(y-640)/640<1;
 const DECOR=(()=>{let r=7,rnd=()=>(r=(r*16807)%2147483647)/2147483647,out=[],kinds=['pine_tree','apple_tree','willow_tree','flower_bush','pine_tree','flower_bush'];
  for(let n=0;n<1500&&out.length<90;n++){let x=WX0+rnd()*(WX1-WX0),y=WY0+60+rnd()*(WY1-WY0-60);if(inIsland(x,y+40)||inIsland(x,y-60))continue;
-  if(ZONES.some(z=>Math.abs(x-z.x)/(z.n*HX+40)+Math.abs(y-z.y)/(z.n*HY+60)<1.05))continue;if(out.some(o=>Math.hypot(o.x-x,o.y-y)<90))continue;if(Math.abs(x-1330)<190&&Math.abs(y-930)<150)continue;
+  if(ZONES_OLD.some(z=>false&&Math.abs(x-z.x)/(z.n*HX+40)+Math.abs(y-z.y)/(z.n*HY+60)<1.05))continue;if(out.some(o=>Math.hypot(o.x-x,o.y-y)<90))continue;if(Math.abs(x-1330)<190&&Math.abs(y-930)<150)continue;
   let k=kinds[Math.floor(rnd()*kinds.length)];out.push({x,y,k,s:.8+rnd()*.5})}return out.sort((a,b)=>a.y-b.y)})();
 const DSZ={pine_tree:[70,66],apple_tree:[190,110],willow_tree:[70,117],flower_bush:[90,40]};
 let GROUND=null;const GS=.6;
@@ -74,8 +77,8 @@ function buildGround(){const c=document.createElement('canvas'),w=Math.ceil((WX1
   else{g.fillStyle=['#fff','#ffe066','#ff9ec7','#c9a7ff'][Math.floor(rnd()*4)];g.beginPath();g.arc(x,y,2.6,0,7);g.fill();g.fillStyle='#ffd34d';g.beginPath();g.arc(x,y,1,0,7);g.fill()}}
  GROUND=c}
 function drawOuter(t,front){
- if(!front){if(!GROUND)buildGround();ctx.drawImage(GROUND,WX0-400,WY0-400,GROUND.width/GS,GROUND.height/GS);drawRoads();ZONES.forEach(z=>drawZone(z,t))}
- DECOR.forEach(d=>{let [w,h]=DSZ[d.k];drawSprite(d.k,d.x,d.y,w*d.s,h*d.s)})}
+ if(!front){if(!GROUND)buildGround();ctx.fillStyle='#78b948';ctx.fillRect(WX0-4000,WY0-4000,WX1-WX0+8000,WY1-WY0+8000);ctx.drawImage(GROUND,WX0-400,WY0-400,GROUND.width/GS,GROUND.height/GS);drawRoads();drawFences();drawLand(t)}
+ DECOR.forEach((d,n)=>{if(decorGone.has(n))return;let [w,h]=DSZ[d.k];drawSprite(d.k,d.x,d.y,w*d.s,h*d.s)})}
 function drawZone(z,t){if(zonesOwned.includes(z.id))return;let n=z.n,P=(a,b)=>[z.x+(a-b)*HX,z.y-n*HY+(a+b)*HY];
  const pl=(pts,f)=>{ctx.beginPath();pts.forEach((q,k)=>k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fillStyle=f;ctx.fill()};
  pl([P(0,0),P(n,0),P(n,n),P(0,n)],'rgba(70,120,40,.35)');
@@ -92,7 +95,7 @@ function drawSprite(key,x,y,w,h){let im=img[key];if(im&&im.complete&&im.naturalW
 function worldDraw(t){ctx.clearRect(0,0,viewW,viewH);ctx.save();ctx.scale(scale,scale);ctx.translate(-camX,-camY);
 drawOuter(t,0);
 // Buildings are separate PNG objects layered over the illustrated terrain.
-Object.values(OBJ).filter(o=>o.k!=='tractor').sort((a,b)=>((b.flat||0)-(a.flat||0))||(a.y-b.y)).forEach(o=>{drawSprite(o.k,o.x,o.y,o.w,o.h);if(moving&&moving.o===o)drawFoot(moving)});
+[...Object.values(OBJ),...DECO].filter(o=>o.k!=='tractor').sort((a,b)=>((b.flat||0)-(a.flat||0))||(a.y-b.y)).forEach(o=>{drawSprite(o.k,o.x,o.y,o.w,o.h);if(moving&&moving.o===o)drawFoot(moving)});
 // Extra farm details
 if(land>1)drawSprite('apple_tree',410,470,150,170);
 // Garden plots and crop stages
@@ -159,7 +162,7 @@ function drawBubbles(t){animals.forEach(a=>{let P=PROD[a.type];if(!P||!prodReady
   ctx.save();ctx.fillStyle='#fff';ctx.strokeStyle='#e79a24';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,19,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-6,y+16);ctx.lineTo(x+6,y+16);ctx.lineTo(x,y+26);ctx.closePath();ctx.fill();
   ctx.font='22px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(P.e,x,y+1);ctx.restore()});
  let T=OBJ.tractor,n=plots.filter(p=>p.crop&&Date.now()>=p.readyAt).length;if(n&&Date.now()>=tractorUntil){let bob=Math.sin(t/220)*4,x=T.x,y=T.y-T.h-14+bob;ctx.save();ctx.fillStyle='#4caf50';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x-34,y-17,68,32,16);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='900 16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🌾 '+n,x,y);ctx.restore()}}
-function hit(x,y){let c=cellAt(x,y);if(c){plantAt(c);return true}let zz=zoneAt(x,y);if(zz){askZone(zz);return true}{let T=OBJ.tractor;if(Math.abs(x-T.x)<T.w*.5&&y<T.y+8&&y>T.y-T.h){useTractor();return true}}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
+function hit(x,y){let c=cellAt(x,y);if(c){plantAt(c);return true}if(!landAt(x,y)){let[a,b]=chunkOf(x,y);askLand(a,b);return true}{let T=OBJ.tractor;if(Math.abs(x-T.x)<T.w*.5&&y<T.y+8&&y>T.y-T.h){useTractor();return true}}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
 let pointers=new Map(),drag=null,pinch=null,minS=.3;
 const OBJ={lake:{k:'lake',x:976,y:414,w:465,h:283,nome:'Lago',flat:1},house:{k:'house',x:280,y:430,w:270,h:270,nome:'Casa'},barn:{k:'barn',x:1210,y:360,w:250,h:230,nome:'Celeiro'},silo:{k:'silo',x:1370,y:310,w:100,h:220,nome:'Silo'},windmill:{k:'windmill',x:1450,y:520,w:170,h:260,nome:'Moinho'},well:{k:'well',x:350,y:618,w:115,h:160,nome:'Poço'},market:{k:'market',x:220,y:610,w:180,h:175,nome:'Feira'},tractor:{k:'tractor',x:610,y:845,w:125,h:110,nome:'Trator'}};
 let moving=null;
@@ -169,11 +172,11 @@ function fpOf(kind,o){let r,cx,cy;
  else if(kind==='pen'){r=o.w*.46;cx=o.x;cy=o.y-r*HY/HX-o.h*.04}
  else{r=o.n*HX;cx=o.x;cy=o.y}
  return{u:(cx/HX+cy/HY)/2,v:(cy/HY-cx/HX)/2,a:r/(2*HX),cx,cy,r}}
-function allItems(){let L=[];for(const k in OBJ)L.push({kind:'obj',key:'o'+k,o:OBJ[k]});for(const k in PENS)L.push({kind:'pen',key:'p'+k,o:PENS[k]});
+function allItems(){let L=[];for(const k in OBJ)L.push({kind:'obj',key:'o'+k,o:OBJ[k]});DECO.forEach(d=>L.push({kind:'obj',key:'d'+d.id,o:d}));for(const k in PENS)L.push({kind:'pen',key:'p'+k,o:PENS[k]});
  fields().forEach(F=>L.push({kind:'field',key:'f'+F.id,o:F.id==='main'?{x:FX,y:FY,n:fieldN}:F}));return L}
 function overlaps(item){let A=fpOf(item.kind,item.o);return allItems().some(b=>{if(b.key===item.key)return false;let B=fpOf(b.kind,b.o),m=(A.a+B.a)*.94;return Math.abs(A.u-B.u)<m&&Math.abs(A.v-B.v)<m})}
-function keyOf(m){if(m.kind==='field')return'fmain';for(const k in OBJ)if(OBJ[k]===m.o)return'o'+k;for(const k in PENS)if(PENS[k]===m.o)return'p'+k;return''}
-function itemOf(m){return{kind:m.kind,key:keyOf(m),o:m.kind==='field'?{x:FX,y:FY,n:fieldN}:m.o}}
+function keyOf(m){if(m.kind==='field')return'f'+(m.fid||'main');if(m.o&&m.o.deco)return'd'+m.o.id;for(const k in OBJ)if(OBJ[k]===m.o)return'o'+k;for(const k in PENS)if(PENS[k]===m.o)return'p'+k;return''}
+function itemOf(m){return{kind:m.kind,key:keyOf(m),o:m.kind==='field'&&!m.fid?{x:FX,y:FY,n:fieldN}:m.o}}
 function drawFoot(m){let F=fpOf(m.kind,itemOf(m).o),ok=placeOk(itemOf(m)),hw=F.r,hh=F.r*HY/HX;
  ctx.save();ctx.fillStyle=ok?'rgba(60,200,80,.45)':'rgba(230,50,40,.5)';ctx.strokeStyle=ok?'#2e9e3a':'#c62828';ctx.lineWidth=4;
  ctx.beginPath();ctx.moveTo(F.cx,F.cy-hh);ctx.lineTo(F.cx+hw,F.cy);ctx.lineTo(F.cx,F.cy+hh);ctx.lineTo(F.cx-hw,F.cy);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore()}
@@ -181,12 +184,14 @@ function drawFoot(m){let F=fpOf(m.kind,itemOf(m).o),ok=placeOk(itemOf(m)),hw=F.r
 /* mapa do que já está pintado no chão (estrada, árvore, água, cerca, flores) */
 const MASK=(()=>{const b=atob('AAAAAAAfyHcAAAAAAAAAAAG//PeAAAAAAAAAAGf////AAAAAAAAAAP/////eT4AAAAAAAP///////8AAAAAAAf///////+AAAAAAAf//////8PAAAAAAA///////8HgAAAABw///////4HwAAAAH//+d////zPwAAAAP//4P//////wAAAAf//4f//////wAAAAf//w///////8AAAA///5////////AAAB///9////////gAHz///////////jwAP///9////////fwAf////+P///////4A4////8H///////4A7////+D///////4A/z////j///////4B/3//////////z/wD////7///////5/gDn///w///////5/wH///7hv//////7/4H///wDz////gBz/8H//+gBn///wAAB/+H//8AAD///gAAAf/P//wAAB///AAAAn/f//gAAAf/+AAAd/////AAAAf//hAA/////+AAAAOf/7gD////8AAAAAAH//4n////4AAAAANP///3////ABAAAAf////////+ADgAAA/////////+AHgAAB//////////A/wYAH//////////n/w8AP//+P////////wYAP//4D////////8DAH//gA/////////HwP//wB////8f///n4///z/////wH////7//nn/////AD//////+Pn////8AA//////8P3////wAAP//+//+Hj////AAAD////+PAB///8AAAA////8HgA///wAAAAf////PwH///AAAAAH/////4f//8AAAAAB/////w///4AAAAAAf////////gAAAAAAH///////+AAAAAAAB///////4AAAAAAAAf//////gAAAAAAAAH/////+AAAAAAAAAD/////4AAAAAAAAAA/////gAAAAAAAAAAP///+AAAAAAAAAAAD///4AAAAAAAAAAAA///gAAAAAAAAAAAAP/+AAAAAAAAAAAAAD+AAAAAAAA'),gw=96,gh=64,a=new Uint8Array(gw*gh);for(let i=0;i<a.length;i++)a[i]=(b.charCodeAt(i>>3)>>(7-(i&7)))&1;return{a,gw,gh,c:16}})();
 function paintedAt(x,y){return typeof roadAt==='function'&&roadAt(x,y)?1:0;if(x<0||y<0||x>=W||y>=H)return 0;let gx=Math.floor(x/16),gy=Math.floor(y/16);return MASK.a[gy*MASK.gw+gx]}
-function decorAt(x,y){return DECOR.some(d=>Math.hypot(d.x-x,(d.y-y)*1.6)<38)}
-function zoneHit(x,y){return ZONES.some(z=>!zonesOwned.includes(z.id)&&Math.abs(x-z.x)/(z.n*HX)+Math.abs(y-z.y)/(z.n*HY)<=1)}
+function decorIdx(x,y){let r=[];DECOR.forEach((d,n)=>{if(!decorGone.has(n)&&Math.hypot(d.x-x,(d.y-y)*1.6)<38)r.push(n)});return r}
+function decorAt(x,y){return decorIdx(x,y).length>0}
+function clearDecorIn(item){let F=fpOf(item.kind,item.o),hw=F.r,hh=F.r*HY/HX,c=0;for(let yy=-hh;yy<=hh;yy+=10)for(let xx=-hw;xx<=hw;xx+=10){if(Math.abs(xx)/hw+Math.abs(yy)/hh>1)continue;decorIdx(F.cx+xx,F.cy+yy).forEach(n=>{decorGone.add(n);c++})}return c}
+function zoneHit(x,y){return !landAt(x,y)}
 function blockedFrac(item){let F=fpOf(item.kind,item.o),hw=F.r,hh=F.r*HY/HX,n=0,b=0;
- for(let yy=-hh;yy<=hh;yy+=10)for(let xx=-hw;xx<=hw;xx+=10){if(Math.abs(xx)/hw+Math.abs(yy)/hh>.92)continue;n++;let x=F.cx+xx,y=F.cy+yy;if(paintedAt(x,y)||decorAt(x,y)||zoneHit(x,y))b++}
+ for(let yy=-hh;yy<=hh;yy+=10)for(let xx=-hw;xx<=hw;xx+=10){if(Math.abs(xx)/hw+Math.abs(yy)/hh>.92)continue;n++;let x=F.cx+xx,y=F.cy+yy;if((paintedAt(x,y)&&item.key!=='otractor')||fenceAt(x,y)||zoneHit(x,y))b++}
  return n?b/n:0}
-function placeOk(item){if(item.key==='otractor')return !overlaps(item);return !overlaps(item)&&blockedFrac(item)<=.12}
+function placeOk(item){return !overlaps(item)&&blockedFrac(item)<=.04}
 const DEF={};
 function fixOverlaps(){let changed=false;for(const it of allItems()){if(it.kind==='field'&&it.key!=='fmain')continue;let d0=DEF[it.key],cx=it.kind==='field'?FX:it.o.x,cy=it.kind==='field'?FY:it.o.y,atDef=d0&&Math.abs(d0[0]-cx)<1&&Math.abs(d0[1]-cy)<1;if(!overlaps(it)&&(atDef||blockedFrac(it)<=.12))continue;
   let d=DEF[it.key];if(!d)continue;let ox=it.kind==='field'?FX:it.o.x,oy=it.kind==='field'?FY:it.o.y;
@@ -199,18 +204,19 @@ function layout(){let o={};for(const k in OBJ)o[k]=[OBJ[k].x,OBJ[k].y];let p={};
 function applyLayout(L){if(!DEF.done){for(const k in OBJ)DEF['o'+k]=[OBJ[k].x,OBJ[k].y];for(const k in PENS)DEF['p'+k]=[PENS[k].x,PENS[k].y];DEF.fmain=[FX,FY];DEF.done=1}if(!L)return;if(L.o&&L.o.tractor&&L.o.tractor[0]===470&&L.o.tractor[1]===880)delete L.o.tractor;for(const k in L.o||{})if(OBJ[k]){OBJ[k].x=L.o[k][0];OBJ[k].y=L.o[k][1]}for(const k in L.p||{})if(PENS[k]){PENS[k].x=L.p[k][0];PENS[k].y=L.p[k][1]}if(L.f){FX=L.f[0];FY=L.f[1]}}
 function objAt(x,y){
  const inBox=o=>Math.abs(x-o.x)<o.w*.42&&y<o.y+6&&y>o.y-o.h*.9;
- let list=Object.values(OBJ).sort((a,b)=>b.y-a.y);for(const o of list)if(inBox(o))return{o,kind:'obj'};
+ let list=[...Object.values(OBJ),...DECO].sort((a,b)=>b.y-a.y);for(const o of list)if(inBox(o))return{o,kind:'obj'};
  for(const k in PENS){let P=PENS[k],q=pin(P);if(Math.abs(x-q.x)/(q.a*1.5)+Math.abs(y-q.y)/(q.b*1.9)<=1)return{o:P,kind:'pen',k}}
+ for(const E of EXTRAS)if(Math.abs(x-E.x)/(E.n*HX)+Math.abs(y-E.y)/(E.n*HY)<=1)return{o:E,kind:'field',fid:E.id};
  if(Math.abs(x-FX)/(fieldN*HX)+Math.abs(y-FY)/(fieldN*HY)<=1)return{o:{get x(){return FX},set x(v){FX=v},get y(){return FY},set y(v){FY=v},w:fieldN*HX*2,nome:'Plantação'},kind:'field'};
  return null}
 function moveBy(m,dx,dy){let o=m.o,nx=Math.max(WX0+60,Math.min(WX1-60,o.x+dx)),ny=Math.max(WY0+120,Math.min(WY1-20,o.y+dy));dx=nx-o.x;dy=ny-o.y;o.x=nx;o.y=ny;
  if(m.kind==='pen')animals.forEach(a=>{if(penOf(a)===o){a.x+=dx;a.y+=dy;if(a.tx!==undefined){a.tx+=dx;a.ty+=dy}}});
- if(m.kind==='field'){plots.forEach(p=>{if(p.f==='main'){p.x+=dx;p.y+=dy}})}}
+ if(m.kind==='field'){let id=m.fid||'main';plots.forEach(p=>{if(p.f===id){p.x+=dx;p.y+=dy}})}}
 (function(){const scene=document.getElementById('scene');let timer=null,st=null,last=null;
  scene.addEventListener('pointerdown',e=>{clearTimeout(timer);if(pointers.size>0){st=null;return}st={x:e.clientX,y:e.clientY};
-  timer=setTimeout(()=>{if(!st)return;let w=toWorld(st.x,st.y),m=objAt(w.x,w.y);if(!m)return;moving=m;m.sx=m.o.x;m.sy=m.o.y;last=w;drag=null;try{navigator.vibrate&&navigator.vibrate(40)}catch(_){}toast('Arraste para mudar '+(m.o.nome||'')+' de lugar');if(window.SND)SND.play('click')},450)},true);
- scene.addEventListener('pointermove',e=>{if(moving){let w=toWorld(e.clientX,e.clientY);moveBy(moving,w.x-last.x,w.y-last.y);last=w;e.stopPropagation();return}if(st&&Math.hypot(e.clientX-st.x,e.clientY-st.y)>10){clearTimeout(timer);st=null}},true);
- const end=()=>{clearTimeout(timer);st=null;if(moving){let m=moving,bad=!placeOk(itemOf(m));if(bad){moveBy(m,m.sx-m.o.x,m.sy-m.o.y);toast(overlaps(itemOf(m))?'Não cabe aí! Está em cima de outra construção.':'Não pode ficar em cima de estrada ou árvore.');if(window.SND)SND.play('error')}else{toast('Novo lugar salvo!')}if(m.kind==='field')buildField(plots);moving=null;drag=null;save()}};
+  timer=setTimeout(()=>{if(!st)return;let w=toWorld(st.x,st.y),m=objAt(w.x,w.y);if(!m)return;moving=m;m.sx=m.o.x;m.sy=m.o.y;if(m.o.deco){let T=document.getElementById('trash');T.style.display='block';T.classList.remove('hot')}last=w;drag=null;try{navigator.vibrate&&navigator.vibrate(40)}catch(_){}toast('Arraste para mudar '+(m.o.nome||'')+' de lugar');if(window.SND)SND.play('click')},450)},true);
+ scene.addEventListener('pointermove',e=>{if(moving){window._px=e.clientX;window._py=e.clientY;let T=document.getElementById('trash');if(T&&moving.o.deco){let r=T.getBoundingClientRect();T.classList.toggle('hot',e.clientX>r.left-20&&e.clientX<r.right+20&&e.clientY>r.top-20&&e.clientY<r.bottom+20)}let w=toWorld(e.clientX,e.clientY);moveBy(moving,w.x-last.x,w.y-last.y);last=w;e.stopPropagation();return}if(st&&Math.hypot(e.clientX-st.x,e.clientY-st.y)>10){clearTimeout(timer);st=null}},true);
+ const end=()=>{clearTimeout(timer);st=null;if(moving){let m=moving,T=document.getElementById('trash');if(T)T.style.display='none';if(m.o.deco&&T&&T.classList.contains('hot')){DECO=DECO.filter(d=>d!==m.o);coins+=Math.floor((m.o.p||20)/2);updateHud();moving=null;drag=null;save();toast(m.o.nome+' vendido: +'+Math.floor((m.o.p||20)/2)+' moedas');return}let bad=!placeOk(itemOf(m));if(bad){moveBy(m,m.sx-m.o.x,m.sy-m.o.y);toast(overlaps(itemOf(m))?'Não cabe aí! Está em cima de outra construção.':'Não pode ficar em cima de estrada ou árvore.');if(window.SND)SND.play('error')}else{if(clearDecorIn(itemOf(m)))toast('Novo lugar salvo! As plantas do caminho foram removidas.');else toast('Novo lugar salvo!')}if(m.kind==='field')buildField(plots);moving=null;drag=null;save()}};
  scene.addEventListener('pointerup',end,true);scene.addEventListener('pointercancel',end,true);
  setTimeout(()=>document.getElementById('hint').classList.add('off'),7000)})();
 
@@ -232,43 +238,109 @@ function stepTractor(dt){if(!TR)return;let g=TR.path[TR.k],dx=g.x-TR.x,dy=g.y-TR
  else{TR.x+=dx/d*sp*dt;TR.y+=dy/d*sp*dt}}
 function drawTractorAt(x,y,w,h,face){let im=img.tractor;if(!im||!im.naturalWidth)return;ctx.save();ctx.translate(x,y);ctx.scale(face,1);ctx.translate(0,Math.sin(performance.now()/60)*1.2);ctx.drawImage(im,-w/2,-h,w,h);ctx.restore()}
 function openPanel(title,body){let p=document.getElementById('panel');p.innerHTML='<button class="close" onclick="closePanels()">×</button><h2>'+title+'</h2>'+body;p.style.display='block'}function closePanels(){document.getElementById('panel').style.display='none'}
-function openShop(){let crops=[['wheat','Trigo',3],['corn','Milho',5],['carrot','Cenoura',6],['strawberry','Morango',8],['lettuce','Alface',7]];let html=`<p>Escolha uma semente para plantar. O tempo de crescimento é curto nesta versão de demonstração.</p><div class="shopgrid">${crops.map(([k,n,c])=>`<div class="shopitem"><img src="images/${k}_3.png"><strong>${n}</strong><span>${c} moedas</span><br><button onclick="buySeed('${k}')">Selecionar</button></div>`).join('')}</div><hr><div class="shopgrid"><div class="shopitem"><img src="images/cow.png"><strong>Vaca</strong><button onclick="buyAnimal('cow')">Comprar 120</button></div><div class="shopitem"><img src="images/chicken.png"><strong>Galinha</strong><button onclick="buyAnimal('chicken')">Comprar 65</button></div></div>`;openPanel('Loja da fazenda',html)}
+function openShop(){setTimeout(()=>{let p=document.getElementById('panel');if(p&&!p.querySelector('#decoLink')&&!/Decora/.test((p.querySelector('h2')||{}).textContent||'')){let d=document.createElement('button');d.id='decoLink';d.className='panelbtn';d.textContent='🌼 Decoração, cercas e plantação extra';d.style.cssText='display:block;width:100%;margin:8px 0';d.onclick=openDecoShop;let h=p.querySelector('h2');h&&h.after(d)}},0);let crops=[['wheat','Trigo',3],['corn','Milho',5],['carrot','Cenoura',6],['strawberry','Morango',8],['lettuce','Alface',7]];let html=`<p>Escolha uma semente para plantar. O tempo de crescimento é curto nesta versão de demonstração.</p><div class="shopgrid">${crops.map(([k,n,c])=>`<div class="shopitem"><img src="images/${k}_3.png"><strong>${n}</strong><span>${c} moedas</span><br><button onclick="buySeed('${k}')">Selecionar</button></div>`).join('')}</div><hr><div class="shopgrid"><div class="shopitem"><img src="images/cow.png"><strong>Vaca</strong><button onclick="buyAnimal('cow')">Comprar 120</button></div><div class="shopitem"><img src="images/chicken.png"><strong>Galinha</strong><button onclick="buyAnimal('chicken')">Comprar 65</button></div></div>`;openPanel('Loja da fazenda',html)}
 function buySeed(k){choosePlant(k);closePanels()}function buyAnimal(k){let c=k==='cow'?120:65;if(coins<c){toast('Moedas insuficientes');return}coins-=c;animals.push({type:k,x:0,y:0,start:1,dx:Math.random()>.5?1:-1,dy:.4,product:k==='cow'?'Leite':'Ovos'});animalProducts[k]=animalProducts[k]||0;updateHud();save();toast('Animal comprado!');closePanels()}
 function openMissions(){openPanel('Missões da fazenda','<div class="mission"><b>Primeira colheita</b><p>Colha 3 canteiros para ganhar 80 moedas e 30 XP.</p><button class="panelbtn" onclick="claimMission(3)">Resgatar recompensa</button></div><div class="mission"><b>Cuide dos animais</b><p>Recolha leite, ovos ou lã.</p><button class="panelbtn" onclick="claimMission(2)">Resgatar 40 moedas</button></div><div class="mission"><b>Pequena expansão</b><p>Abra mais espaço para sua fazenda.</p><button class="panelbtn" onclick="expandLand();closePanels()">Expandir terreno</button></div>')}
 function claimMission(n){coins+=n===3?80:40;gainXP(30);updateHud();save();toast('Missão concluída! Recompensa recebida.');closePanels()}
 function dailyGift(){let today=new Date().toISOString().slice(0,10);if(dailyStamp===today){toast('O presente de hoje já foi recebido');return}dailyStamp=today;coins+=100;energy=Math.min(30,energy+10);gainXP(15);updateHud();save();toast('Presente diário: 100 moedas e 10 energias!')}
-function expandLand(){let rows=ZONES.map(z=>{let own=zonesOwned.includes(z.id);return '<div class="mission"><b>'+z.nome+'</b><p>'+(own?'Já é seu! '+z.n*z.n+' canteiros.':z.n*z.n+' canteiros · '+z.cost+' moedas · nível '+z.lv)+'</p>'+(own?'<button class="panelbtn" onclick="closePanels();goTo('+z.x+','+z.y+')">Ver no mapa</button>':'<button class="panelbtn" onclick="buyZone(ZONES.find(q=>q.id===\''+z.id+'\'))">Comprar</button> <button class="panelbtn" onclick="closePanels();goTo('+z.x+','+z.y+')">Ver no mapa</button>')+'</div>'}).join('');
- let main=fieldN<5?'<div class="mission"><b>Aumentar a plantação principal</b><p>De '+fieldN+'×'+fieldN+' para 5×5 canteiros · 300 moedas</p><button class="panelbtn" onclick="growMain()">Aumentar</button></div>':'';
- openPanel('Expandir a fazenda','<p>Compre terrenos em volta da fazenda. Afaste o zoom para ver todos.</p>'+main+rows)}
+function expandLand(){landPanel()}
 function growMain(){if(coins<300){toast('Precisa de 300 moedas');return}coins-=300;land=2;buildField(plots);gainXP(40);updateHud();save();closePanels();toast('Plantação principal agora tem 5×5 canteiros!')}
 
-/* estradas desenhadas pelo jogador */
-let ROADS=new Set(),roadMode=false;
+/* ===== terreno contínuo, estradas, cercas e decoração ===== */
+let ROADS=new Map(),roadMode=false,tool='t';
 const rCell=(x,y)=>[Math.floor((x/HX+y/HY)/2),Math.floor((y/HY-x/HX)/2)];
 function roadAt(x,y){let[i,j]=rCell(x,y);return ROADS.has(i+','+j)}
+function fenceAt(x,y){let[i,j]=rCell(x,y);return FENCES.has(i+','+j)}
 function cellPts(i,j){let x=(i-j)*HX,y=(i+j)*HY;return[[x,y],[x+HX,y+HY],[x,y+2*HY],[x-HX,y+HY]]}
-function cellFree(i,j){let x=(i-j)*HX,y=(i+j)*HY+HY;return !inAnyFoot(x,y)&&!decorAt(x,y)&&!zoneHit(x,y)}
-function drawRoads(){if(!ROADS.size)return;ctx.save();
- ROADS.forEach(k=>{let[i,j]=k.split(',').map(Number),p=cellPts(i,j);ctx.fillStyle=(i+j)%2?'#d9b27a':'#d3aa70';ctx.beginPath();p.forEach((q,n)=>n?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fill()});
- ctx.strokeStyle='#a97b45';ctx.lineWidth=3;ctx.lineCap='round';
- ROADS.forEach(k=>{let[i,j]=k.split(',').map(Number),p=cellPts(i,j),nb=[[i,j-1],[i+1,j],[i,j+1],[i-1,j]];
-  for(let e=0;e<4;e++){if(ROADS.has(nb[e][0]+','+nb[e][1]))continue;let a=p[e],b=p[(e+1)%4];ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
-  let h=((i*73856093)^(j*19349663))>>>0;if(h%3===0){let c=[(i-j)*HX+(h%17)-8,(i+j)*HY+HY+((h>>5)%9)-4];ctx.fillStyle='#b9925c';ctx.beginPath();ctx.ellipse(c[0],c[1],4,2.5,0,0,7);ctx.fill()}});
+function cellFree(i,j){let x=(i-j)*HX,y=(i+j)*HY+HY;return landAt(x,y)&&!inAnyFoot(x,y)}
+/* terreno em blocos; compra sempre ao lado do que já é seu */
+const CH=6;
+function chunkOf(x,y){let[i,j]=rCell(x,y);return[Math.floor(i/CH),Math.floor(j/CH)]}
+function landAt(x,y){let[a,b]=chunkOf(x,y);return LAND.has(a+','+b)}
+function chunkPts(a,b){const P=(i,j)=>[(i-j)*HX,(i+j)*HY];return[P(a*CH,b*CH),P(a*CH+CH,b*CH),P(a*CH+CH,b*CH+CH),P(a*CH,b*CH+CH)]}
+function chunkCenter(a,b){let i=(a+.5)*CH,j=(b+.5)*CH;return[(i-j)*HX,(i+j)*HY]}
+function chunkInWorld(a,b){let[x,y]=chunkCenter(a,b);return x>WX0+150&&x<WX1-150&&y>WY0+120&&y<WY1-120}
+function landPrice(){return Math.round(250*Math.pow(1.45,landBought)/50)*50}
+function landLevel(){return 2+Math.floor(landBought/2)}
+function buyable(a,b){return !LAND.has(a+','+b)&&chunkInWorld(a,b)&&[[1,0],[-1,0],[0,1],[0,-1]].some(([da,db])=>LAND.has((a+da)+','+(b+db)))}
+function itemChunks(it){let F=fpOf(it.kind,it.o),hw=F.r,hh=F.r*HY/HX,set=new Set();for(let yy=-hh;yy<=hh;yy+=15)for(let xx=-hw;xx<=hw;xx+=15){if(Math.abs(xx)/hw+Math.abs(yy)/hh>1)continue;let[a,b]=chunkOf(F.cx+xx,F.cy+yy);set.add(a+','+b)}return set}
+function initLand(){let need=new Set();allItems().forEach(it=>itemChunks(it).forEach(k=>need.add(k)));
+ if(!LAND.size){let A=[...need].map(k=>k.split(',').map(Number)),a0=Math.min(...A.map(q=>q[0])),a1=Math.max(...A.map(q=>q[0])),b0=Math.min(...A.map(q=>q[1])),b1=Math.max(...A.map(q=>q[1]));for(let a=a0;a<=a1;a++)for(let b=b0;b<=b1;b++)LAND.add(a+','+b)}
+ else need.forEach(k=>LAND.add(k));ROADS.forEach((v,k)=>{let[i,j]=k.split(',').map(Number);LAND.add(Math.floor(i/CH)+','+Math.floor(j/CH))})}
+function landRange(){let c=[[WX0-900,WY0-600],[WX1+900,WY0-600],[WX0-900,WY1+600],[WX1+900,WY1+600]].map(([x,y])=>chunkOf(x,y));return[Math.min(...c.map(q=>q[0]))-1,Math.max(...c.map(q=>q[0]))+1,Math.min(...c.map(q=>q[1]))-1,Math.max(...c.map(q=>q[1]))+1]}
+function drawLand(t){const[a0,a1,b0,b1]=landRange(),pr=landPrice(),lv=landLevel();ctx.save();
+ for(let a=a0;a<=a1;a++)for(let b=b0;b<=b1;b++){if(LAND.has(a+','+b))continue;let p=chunkPts(a,b);ctx.fillStyle='rgba(30,60,15,.33)';ctx.beginPath();p.forEach((q,n)=>n?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fill()}
+ ctx.setLineDash([12,10]);ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=4;
+ for(let a=a0;a<=a1;a++)for(let b=b0;b<=b1;b++){if(!buyable(a,b))continue;let p=chunkPts(a,b);ctx.beginPath();p.forEach((q,n)=>n?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.stroke()}
+ ctx.setLineDash([]);
+ for(let a=a0;a<=a1;a++)for(let b=b0;b<=b1;b++){if(!buyable(a,b))continue;let[x,y]=chunkCenter(a,b),ok=level>=lv,txt=ok?'🔓 '+pr:'🔒 Nível '+lv,bob=Math.sin(t/400+a+b)*3;
+  ctx.font='900 22px sans-serif';ctx.textAlign='center';let tw=ctx.measureText(txt).width+30;ctx.fillStyle=ok?'#e79a24':'rgba(70,45,20,.85)';ctx.beginPath();ctx.roundRect(x-tw/2,y-20+bob,tw,40,20);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.stroke();ctx.fillStyle='#fff';ctx.fillText(txt,x,y+8+bob)}
  ctx.restore()}
-function setRoadMode(on){roadMode=on;const b=document.getElementById('roadBtn');if(b){b.classList.toggle('on',on);b.innerHTML=on?'✔️<small>pronto</small>':'🛤️<small>estrada</small>'}
- if(on)toast('Arraste o dedo para fazer estrada (5 moedas cada). Comece em cima de uma estrada para apagar.',4200)}
+function askLand(a,b){if(!buyable(a,b)){toast('Compre primeiro os terrenos ao lado da sua fazenda');return}let pr=landPrice(),lv=landLevel();
+ openPanel('Novo terreno','<p>Mais espaço colado na sua fazenda para construir, plantar e fazer estradas.</p><p>Preço: <b>'+pr+' moedas</b> · precisa do nível '+lv+'.</p><p style="font-size:13px;opacity:.75">Cada terreno comprado deixa o próximo um pouco mais caro.</p><button class="panelbtn" onclick="buyLand('+a+','+b+')">Comprar terreno</button>')}
+function buyLand(a,b){let pr=landPrice(),lv=landLevel();if(level<lv){toast('Chegue ao nível '+lv+' para comprar');return}if(coins<pr){toast('Faltam '+(pr-coins)+' moedas');return}
+ coins-=pr;LAND.add(a+','+b);landBought++;gainXP(30);updateHud();save();closePanels();toast('Terreno comprado! Sua fazenda cresceu 🎉');if(window.SND)SND.play('level')}
+function landPanel(){let list=[];const[a0,a1,b0,b1]=landRange();for(let a=a0;a<=a1;a++)for(let b=b0;b<=b1;b++)if(buyable(a,b))list.push([a,b]);
+ let pr=landPrice(),lv=landLevel();
+ openPanel('Expandir a fazenda','<p>A fazenda cresce em blocos colados uns nos outros. Toque num terreno com a placa laranja no mapa para comprar.</p><div class="mission"><b>Próximo terreno</b><p>'+pr+' moedas · nível '+lv+' · '+list.length+' terrenos disponíveis ao redor</p><button class="panelbtn" onclick="closePanels();zoomOutAll()">Ver no mapa</button></div>'+(fieldN<5?'<div class="mission"><b>Aumentar a plantação principal</b><p>De '+fieldN+'×'+fieldN+' para 5×5 canteiros · 300 moedas</p><button class="panelbtn" onclick="growMain()">Aumentar</button></div>':''))}
+function zoomOutAll(){scale=Math.max(minS,scale*.55);clampCam()}
+/* desenho de estradas e cercas */
+function drawRoads(){if(!ROADS.size)return;ctx.save();
+ ROADS.forEach((v,k)=>{let[i,j]=k.split(',').map(Number),p=cellPts(i,j);ctx.fillStyle=v==='a'?((i+j)%2?'#61666d':'#5a5f66'):((i+j)%2?'#d9b27a':'#d3aa70');ctx.beginPath();p.forEach((q,n)=>n?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fill()});
+ ctx.lineWidth=3;ctx.lineCap='round';
+ ROADS.forEach((v,k)=>{let[i,j]=k.split(',').map(Number),p=cellPts(i,j),nb=[[i,j-1],[i+1,j],[i,j+1],[i-1,j]];ctx.strokeStyle=v==='a'?'#d9d9d9':'#a97b45';
+  for(let e=0;e<4;e++){let nk=nb[e][0]+','+nb[e][1];if(ROADS.get(nk)===v)continue;let a=p[e],b=p[(e+1)%4];ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
+  let c=[(i-j)*HX,(i+j)*HY+HY],h=((i*73856093)^(j*19349663))>>>0;
+  if(v==='a'){ctx.strokeStyle='#f4d35e';ctx.lineWidth=3;let L=0;if(ROADS.get((i+1)+','+j)==='a'||ROADS.get((i-1)+','+j)==='a'){ctx.beginPath();ctx.moveTo(c[0]-HX*.3,c[1]-HY*.3);ctx.lineTo(c[0]+HX*.3,c[1]+HY*.3);ctx.stroke()}else if(ROADS.get(i+','+(j+1))==='a'||ROADS.get(i+','+(j-1))==='a'){ctx.beginPath();ctx.moveTo(c[0]+HX*.3,c[1]-HY*.3);ctx.lineTo(c[0]-HX*.3,c[1]+HY*.3);ctx.stroke()}ctx.lineWidth=3}
+  else if(h%3===0){ctx.fillStyle='#b9925c';ctx.beginPath();ctx.ellipse(c[0]+(h%17)-8,c[1]+((h>>5)%9)-4,4,2.5,0,0,7);ctx.fill()}});
+ ctx.restore()}
+function drawFences(){if(!FENCES.size)return;ctx.save();const post=(x,y)=>{ctx.fillStyle='#8a5a2b';ctx.fillRect(x-3,y-24,7,24);ctx.fillStyle='#b07a45';ctx.fillRect(x-3,y-26,7,4)};
+ let cells=[...FENCES].map(k=>k.split(',').map(Number)).sort((p,q)=>(p[0]+p[1])-(q[0]+q[1]));
+ cells.forEach(([i,j])=>{let c=[(i-j)*HX,(i+j)*HY+HY];ctx.strokeStyle='#c98a4a';ctx.lineWidth=4;
+  [[1,0],[0,1],[-1,0],[0,-1]].forEach(([di,dj])=>{if(!FENCES.has((i+di)+','+(j+dj)))return;let n=[((i+di)-(j+dj))*HX,((i+di)+(j+dj))*HY+HY],mx=(c[0]+n[0])/2,my=(c[1]+n[1])/2;for(const h of[9,18]){ctx.beginPath();ctx.moveTo(c[0],c[1]-h);ctx.lineTo(mx,my-h);ctx.stroke()}});
+  post(c[0],c[1])});ctx.restore()}
+/* modo construir: terra, asfalto, cerca, apagar */
+const TOOLS={t:{n:'Terra',p:5,e:'🟫'},a:{n:'Asfalto',p:12,e:'⬛'},f:{n:'Cerca',p:8,e:'🪵'},x:{n:'Apagar',p:0,e:'🧽'}};
+function setRoadMode(on,t){roadMode=on;if(t)tool=t;const b=document.getElementById('roadBtn'),bar=document.getElementById('buildBar');
+ if(b){b.classList.toggle('on',on);b.innerHTML=on?'✔️<small>pronto</small>':'🛤️<small>construir</small>'}
+ if(bar){bar.style.display=on?'flex':'none';bar.querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x.dataset.t===tool))}
+ if(on)toast(tool==='x'?'Arraste sobre estrada ou cerca para apagar (devolve metade)':'Arraste o dedo para fazer '+TOOLS[tool].n.toLowerCase()+' ('+TOOLS[tool].p+' moedas cada). Árvores no caminho são removidas.',4000)}
 (function(){const scene=document.getElementById('scene');let rd=null;
- scene.addEventListener('pointerdown',e=>{if(!roadMode||e.target.closest('button'))return;if(rd){rd=null;return}let w=toWorld(e.clientX,e.clientY),[i,j]=rCell(w.x,w.y);rd={erase:ROADS.has(i+','+j),last:''};paintRoad(w);e.stopPropagation()},true);
- scene.addEventListener('pointermove',e=>{if(!roadMode||!rd)return;if(pointers.size>1){rd=null;return}paintRoad(toWorld(e.clientX,e.clientY));e.stopPropagation()},true);
- const end=e=>{if(rd){rd=null;save();updateHud()}};scene.addEventListener('pointerup',end,true);scene.addEventListener('pointercancel',end,true);
- function paintRoad(w){let[i,j]=rCell(w.x,w.y),k=i+','+j;if(k===rd.last)return;rd.last=k;
-  if(rd.erase){if(ROADS.delete(k)){coins+=2;if(window.SND)SND.play('click')}return}
-  if(ROADS.has(k))return;if(!cellFree(i,j)){return}if(coins<5){toast('Moedas insuficientes para a estrada');rd=null;return}
-  coins-=5;ROADS.add(k);if(window.SND)SND.play('plant');updateHud()}
- const b=document.createElement('button');b.id='roadBtn';b.className='zb';b.setAttribute('aria-label','Fazer estradas');b.style.cssText='position:fixed;left:10px;bottom:156px;z-index:20;font-size:18px;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:56px;height:56px';
- b.onclick=e=>{e.stopPropagation();setRoadMode(!roadMode)};document.body.appendChild(b);setRoadMode(false);
- const st=document.createElement('style');st.textContent='#roadBtn small{font-size:9px;font-weight:900;margin-top:2px}#roadBtn.on{background:linear-gradient(#9be27a,#4caf50)!important;color:#fff}';document.head.appendChild(st)})();
-applyLayout(null);load();if(fixOverlaps())save();updateHud();window.addEventListener('resize',resize);resize();requestAnimationFrame(tick);setInterval(()=>{regen();updateHud();save()},5000);regen();
+ scene.addEventListener('pointerdown',e=>{if(!roadMode||e.target.closest('button'))return;if(rd){rd=null;return}rd={last:''};paint(toWorld(e.clientX,e.clientY));e.stopPropagation()},true);
+ scene.addEventListener('pointermove',e=>{if(!roadMode||!rd)return;if(pointers.size>1){rd=null;return}paint(toWorld(e.clientX,e.clientY));e.stopPropagation()},true);
+ const end=()=>{if(rd){rd=null;save();updateHud()}};scene.addEventListener('pointerup',end,true);scene.addEventListener('pointercancel',end,true);
+ function paint(w){let[i,j]=rCell(w.x,w.y),k=i+','+j;if(k===rd.last)return;rd.last=k;
+  if(tool==='x'){if(ROADS.has(k)){coins+=Math.floor(TOOLS[ROADS.get(k)].p/2);ROADS.delete(k);if(window.SND)SND.play('click');updateHud()}else if(FENCES.has(k)){coins+=4;FENCES.delete(k);if(window.SND)SND.play('click');updateHud()}return}
+  let x=(i-j)*HX,y=(i+j)*HY+HY;if(!landAt(x,y)){if(!rd.warned){toast('Esse terreno ainda não é seu');rd.warned=1}return}
+  if(inAnyFoot(x,y))return;
+  if(tool==='f'){if(FENCES.has(k)||ROADS.has(k))return}else{if(ROADS.get(k)===tool||FENCES.has(k))return}
+  let p=TOOLS[tool].p;if(coins<p){toast('Moedas insuficientes');rd=null;return}coins-=p;
+  decorIdx(x,y).forEach(n=>decorGone.add(n));
+  if(tool==='f')FENCES.add(k);else ROADS.set(k,tool);if(window.SND)SND.play('plant');updateHud()}
+ const b=document.createElement('button');b.id='roadBtn';b.className='zb';b.setAttribute('aria-label','Construir estradas e cercas');b.style.cssText='position:fixed;left:10px;bottom:156px;z-index:20;font-size:18px;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:56px;height:56px';
+ b.onclick=e=>{e.stopPropagation();setRoadMode(!roadMode)};document.body.appendChild(b);
+ const bar=document.createElement('div');bar.id='buildBar';bar.innerHTML=Object.entries(TOOLS).map(([k,v])=>'<button data-t="'+k+'">'+v.e+'<b>'+v.n+'</b><small>'+(v.p?v.p+' moedas':'devolve ½')+'</small></button>').join('');
+ bar.onclick=e=>{let x=e.target.closest('button');if(!x)return;e.stopPropagation();setRoadMode(true,x.dataset.t)};document.body.appendChild(bar);
+ const st=document.createElement('style');st.textContent='#roadBtn small{font-size:9px;font-weight:900;margin-top:2px}#roadBtn.on{background:linear-gradient(#9be27a,#4caf50)!important;color:#fff}#buildBar{position:fixed;left:76px;bottom:150px;z-index:21;display:none;gap:6px;flex-wrap:wrap;max-width:calc(100vw - 150px)}#buildBar button{min-width:64px;min-height:56px;border-radius:14px;border:2px solid #fff;background:#fff8e6;color:#5a3410;font-size:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 6px;box-shadow:0 3px 8px #0003}#buildBar b{font-size:12px}#buildBar small{font-size:10px;opacity:.75}#buildBar button.sel{background:linear-gradient(#ffe08a,#e79a24)}#trash{position:fixed;left:50%;bottom:110px;translate:-50% 0;z-index:30;display:none;padding:14px 22px;border-radius:30px;background:#c62828;color:#fff;font-weight:900;font-size:16px;box-shadow:0 4px 14px #0005}#trash.hot{transform:scale(1.15);background:#8e0000}';document.head.appendChild(st);
+ const tr=document.createElement('div');tr.id='trash';tr.textContent='🗑️ Solte aqui para vender';document.body.appendChild(tr);
+ setRoadMode(false)})();
+/* loja de decoração */
+const DECOCAT=[{c:'flower_bush',n:'Pedra e flores',k:'flower_bush',w:90,h:40,p:40},{c:'pine',n:'Pé de maçã',k:'pine_tree',w:84,h:79,p:60},{c:'willow',n:'Salgueiro',k:'willow_tree',w:70,h:117,p:80},{c:'apple',n:'Bosque',k:'apple_tree',w:170,h:98,p:120},{c:'barrel',n:'Barril',k:'barrel',w:34,h:44,p:20},{c:'crate',n:'Caixote',k:'crate',w:44,h:41,p:20},{c:'cart',n:'Carroça',k:'cart',w:180,h:48,p:150},{c:'gate',n:'Porteira',k:'gate',w:150,h:96,p:100}];
+let decoSeq=1;
+function makeDeco(c,x,y,id){let d=DECOCAT.find(q=>q.c===c);if(!d)return null;id=id||('n'+Date.now().toString(36)+(decoSeq++));return{id,c,k:d.k,x,y,w:d.w,h:d.h,nome:d.n,deco:1,p:d.p}}
+function findSpot(make){let cx=camX+viewW/scale/2,cy=camY+viewH/scale/2;for(let r=0;r<1400;r+=26)for(let a=0;a<Math.PI*2;a+=Math.max(.2,26/(r+1))){let x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r*.6,it=make(x,y);if(placeOk(it))return it}return null}
+function buyDeco(c){let d=DECOCAT.find(q=>q.c===c);if(coins<d.p){toast('Moedas insuficientes');return}
+ let it=findSpot((x,y)=>({kind:'obj',key:'dnew',o:makeDeco(c,x,y)}));if(!it){toast('Sem espaço livre: compre mais terreno');return}
+ coins-=d.p;let o=it.o;DECO.push(o);clearDecorIn({kind:'obj',key:'d'+o.id,o});updateHud();save();closePanels();goTo(o.x,o.y-40);toast(d.n+' colocado! Segure o dedo nele para mudar de lugar.');if(window.SND)SND.play('plant')}
+function buyField(){if(EXTRAS.length>=3){toast('Você já tem o máximo de plantações extras');return}if(level<3){toast('Plantação extra libera no nível 3');return}if(coins<800){toast('Faltam '+(800-coins)+' moedas');return}
+ let id='x'+Date.now().toString(36),it=findSpot((x,y)=>({kind:'field',key:'f'+id,o:{id,x,y,n:4}}));if(!it){toast('Sem espaço livre: compre mais terreno');return}
+ coins-=800;EXTRAS.push(it.o);clearDecorIn(it);buildField(plots);updateHud();save();closePanels();goTo(it.o.x,it.o.y);toast('Nova plantação! Segure o dedo nela para mudar de lugar.')}
+function openDecoShop(){openPanel('Decoração e construção','<div class="shopgrid">'+DECOCAT.map(d=>'<div class="shopitem"><img src="images/'+d.k+'.png"><strong>'+d.n+'</strong><span>'+d.p+' moedas</span><br><button onclick="buyDeco(\''+d.c+'\')">Comprar</button></div>').join('')+
+ '<div class="shopitem"><img src="images/empty_plot.png"><strong>Plantação extra</strong><span>800 moedas · nível 3</span><br><button onclick="buyField()">Comprar</button></div>'+
+ '<div class="shopitem"><img src="images/gate.png"><strong>Cerca</strong><span>8 moedas por pedaço</span><br><button onclick="closePanels();setRoadMode(true,\'f\')">Desenhar cerca</button></div>'+
+ '<div class="shopitem"><img src="images/cart.png"><strong>Estrada / asfalto</strong><span>5 ou 12 por quadrado</span><br><button onclick="closePanels();setRoadMode(true,\'a\')">Desenhar</button></div></div>')}
+
+applyLayout(null);load();initLand();if(fixOverlaps())save();updateHud();window.addEventListener('resize',resize);resize();requestAnimationFrame(tick);setInterval(()=>{regen();updateHud();save()},5000);regen();
 
 /* ===== Sons e música (gerados no próprio jogo, sem arquivos) ===== */
 const SND=(()=>{let ac=null,master,musicGain,sfxGain,on=true,started=false,musicTimer=null,step=0;
