@@ -23,7 +23,7 @@ body,button{-webkit-user-select:none;user-select:none}
 #toast{white-space:normal!important;max-width:88vw;text-align:center}
 </style></head>
 <body><div id="game">
-<header id="top"><div class="brand">FAZENDA FELIZ</div><div class="stats"><div class="stat">NV <b id="level">1</b></div><div class="stat">MOEDAS <b id="coins">250</b></div><div class="stat">ENERGIA <b id="energy">30</b></div><div class="stat">XP <b id="xp">0</b></div></div></header>
+<header id="top"><div class="brand">FAZENDA FELIZ</div><div class="stats"><div class="stat"><i>⭐</i><b id="level">1</b></div><div class="stat"><i>🪙</i><b id="coins">250</b></div><div class="stat"><i>⚡</i><b id="energy">30</b></div><div class="stat"><i>✨</i><b id="xp">0</b></div></div></header>
 <main id="scene"><canvas id="world"></canvas><div id="hint">Segure o dedo numa construção para mudar de lugar</div><div id="toast"></div><section id="panel"></section></main>
 <nav id="bottom">
 <button class="action selected" id="plantBtn" onclick="choosePlant('wheat')"><span>Plantar</span><small>Trigo</small></button>
@@ -77,7 +77,7 @@ function buildGround(){const c=document.createElement('canvas'),w=Math.ceil((WX1
   else{g.fillStyle=['#fff','#ffe066','#ff9ec7','#c9a7ff'][Math.floor(rnd()*4)];g.beginPath();g.arc(x,y,2.6,0,7);g.fill();g.fillStyle='#ffd34d';g.beginPath();g.arc(x,y,1,0,7);g.fill()}}
  GROUND=c}
 function drawOuter(t,front){
- if(!front){if(!GROUND)buildGround();ctx.fillStyle='#78b948';ctx.fillRect(WX0-4000,WY0-4000,WX1-WX0+8000,WY1-WY0+8000);ctx.drawImage(GROUND,WX0-400,WY0-400,GROUND.width/GS,GROUND.height/GS);drawRoads();drawFences();drawLand(t)}
+ if(!front){if(!GROUND)buildGround();ctx.fillStyle='#78b948';ctx.fillRect(WX0-4000,WY0-4000,WX1-WX0+8000,WY1-WY0+8000);ctx.drawImage(GROUND,WX0-400,WY0-400,GROUND.width/GS,GROUND.height/GS);drawRoads();drawPend();drawFences();drawLand(t)}
  DECOR.forEach((d,n)=>{if(decorGone.has(n))return;let [w,h]=DSZ[d.k];drawSprite(d.k,d.x,d.y,w*d.s,h*d.s)})}
 function drawZone(z,t){if(zonesOwned.includes(z.id))return;let n=z.n,P=(a,b)=>[z.x+(a-b)*HX,z.y-n*HY+(a+b)*HY];
  const pl=(pts,f)=>{ctx.beginPath();pts.forEach((q,k)=>k?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fillStyle=f;ctx.fill()};
@@ -162,7 +162,7 @@ function drawBubbles(t){animals.forEach(a=>{let P=PROD[a.type];if(!P||!prodReady
   ctx.save();ctx.fillStyle='#fff';ctx.strokeStyle='#e79a24';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,19,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-6,y+16);ctx.lineTo(x+6,y+16);ctx.lineTo(x,y+26);ctx.closePath();ctx.fill();
   ctx.font='22px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(P.e,x,y+1);ctx.restore()});
  let T=OBJ.tractor,n=plots.filter(p=>p.crop&&Date.now()>=p.readyAt).length;if(n&&Date.now()>=tractorUntil){let bob=Math.sin(t/220)*4,x=T.x,y=T.y-T.h-14+bob;ctx.save();ctx.fillStyle='#4caf50';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x-34,y-17,68,32,16);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='900 16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🌾 '+n,x,y);ctx.restore()}}
-function hit(x,y){let c=cellAt(x,y);if(c){if(editMode)return true;if(!c.crop){seedRing(c);return true}plantAt(c);return true}if(!landAt(x,y)){let[a,b]=chunkOf(x,y);askLand(a,b);return true}{let T=OBJ.tractor;if(Math.abs(x-T.x)<T.w*.5&&y<T.y+8&&y>T.y-T.h){useTractor();return true}}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
+function hit(x,y){let c=cellAt(x,y);if(c){if(editMode)return true;if(!c.crop){seedRing(c);return true}plantAt(c);return true}if(!landAt(x,y)){let[a,b]=chunkOf(x,y);askLand(a,b);return true}{let T=OBJ.tractor;if(Math.abs(x-T.x)<T.w*.5&&y<T.y+8&&y>T.y-T.h){useTractor();return true}}{let[ri,rj]=rCell(x,y),rk=ri+','+rj;if(!editMode&&(ROADS.has(rk)||FENCES.has(rk))){let hitA=animals.some(a=>Math.abs(x-a.x)<40&&Math.abs(y-a.y+30)<40);if(!hitA){roadPop(rk);return true}}}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
 let pointers=new Map(),drag=null,pinch=null,minS=.3;
 const OBJ={lake:{k:'lake',x:976,y:414,w:465,h:283,nome:'Lago',flat:1},house:{k:'house',x:280,y:430,w:270,h:270,nome:'Casa'},barn:{k:'barn',x:1210,y:360,w:250,h:230,nome:'Celeiro'},silo:{k:'silo',x:1370,y:310,w:100,h:220,nome:'Silo'},windmill:{k:'windmill',x:1450,y:520,w:170,h:260,nome:'Moinho'},well:{k:'well',x:350,y:618,w:115,h:160,nome:'Poço'},market:{k:'market',x:220,y:610,w:180,h:175,nome:'Feira'},tractor:{k:'tractor',x:610,y:845,w:125,h:110,nome:'Trator'}};
 let moving=null;
@@ -306,17 +306,15 @@ function setRoadMode(on,t){roadMode=on;if(t)tool=t;const b=document.getElementBy
  if(bar){bar.style.display=on?'flex':'none';bar.querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x.dataset.t===tool))}
  if(on)toast(tool==='x'?'Arraste sobre estrada ou cerca para apagar (devolve metade)':'Arraste o dedo para fazer '+TOOLS[tool].n.toLowerCase()+' ('+TOOLS[tool].p+' moedas cada). Árvores no caminho são removidas.',4000)}
 (function(){const scene=document.getElementById('scene');let rd=null;
- scene.addEventListener('pointerdown',e=>{if(!roadMode||e.target.closest('button'))return;if(rd){rd=null;return}rd={last:''};paint(toWorld(e.clientX,e.clientY));e.stopPropagation()},true);
+ scene.addEventListener('pointerdown',e=>{if(!roadMode||e.target.closest('button')||e.target.closest('#roadPop,#pendBox,#toolChip,#panel'))return;if(rd){rd=null;return}rd={last:'',sx:e.clientX,sy:e.clientY,n0:PEND.size};paint(toWorld(e.clientX,e.clientY));e.stopPropagation()},true);
  scene.addEventListener('pointermove',e=>{if(!roadMode||!rd)return;if(pointers.size>1){rd=null;return}paint(toWorld(e.clientX,e.clientY));e.stopPropagation()},true);
- const end=()=>{if(rd){rd=null;save();updateHud()}};scene.addEventListener('pointerup',end,true);scene.addEventListener('pointercancel',end,true);
+ const end=e=>{if(rd){let r=rd;rd=null;if(r.hitOld&&PEND.size===r.n0&&e&&Math.hypot(e.clientX-r.sx,e.clientY-r.sy)<10)roadPop(r.hitOld)}};scene.addEventListener('pointerup',end,true);scene.addEventListener('pointercancel',end,true);
  function paint(w){let[i,j]=rCell(w.x,w.y),k=i+','+j;if(k===rd.last)return;rd.last=k;
   if(tool==='x'){if(ROADS.has(k)){coins+=Math.floor(TOOLS[ROADS.get(k)].p/2);ROADS.delete(k);if(window.SND)SND.play('click');updateHud()}else if(FENCES.has(k)){coins+=4;FENCES.delete(k);if(window.SND)SND.play('click');updateHud()}return}
   let x=(i-j)*HX,y=(i+j)*HY+HY;if(!landAt(x,y)){if(!rd.warned){toast('Esse terreno ainda não é seu');rd.warned=1}return}
   if(inAnyFoot(x,y))return;
-  if(tool==='f'){if(FENCES.has(k)||ROADS.has(k))return}else{if(ROADS.get(k)===tool||FENCES.has(k))return}
-  let p=TOOLS[tool].p;if(coins<p){toast('Moedas insuficientes');rd=null;return}coins-=p;
-  decorIdx(x,y).forEach(n=>decorGone.add(n));
-  if(tool==='f')FENCES.add(k);else ROADS.set(k,tool);if(window.SND)SND.play('plant');updateHud()}
+  if(tool==='f'){if(FENCES.has(k)||ROADS.has(k)){rd.hitOld=k;return}}else{if(ROADS.get(k)===tool||FENCES.has(k)){rd.hitOld=k;return}}
+  if(PEND.get(k)===tool)return;PEND.set(k,tool);if(window.SND)SND.play('click')}
  const b=document.createElement('button');b.id='roadBtn';b.className='zb';b.setAttribute('aria-label','Construir estradas e cercas');b.style.cssText='position:fixed;left:10px;bottom:156px;z-index:20;font-size:18px;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:56px;height:56px';
  b.onclick=e=>{e.stopPropagation();setRoadMode(!roadMode)};document.body.appendChild(b);
  const bar=document.createElement('div');bar.id='buildBar';bar.innerHTML=Object.entries(TOOLS).map(([k,v])=>'<button data-t="'+k+'">'+v.e+'<b>'+v.n+'</b><small>'+(v.p?v.p+' moedas':'devolve ½')+'</small></button>').join('');
@@ -402,6 +400,83 @@ function updateBadges(){const set=(id,n)=>{let b=document.getElementById(id);if(
  let today=new Date().toISOString().slice(0,10);set('hGift',dailyStamp!==today);document.getElementById('hGift').classList.toggle('wig',dailyStamp!==today);
  let pr=landPrice();set('hLand',coins>=pr&&level>=landLevel());}
 setInterval(updateBadges,1000);
+
+/* ===== v3.7: menus laterais, janela de construir, blocos pendentes e opções da estrada ===== */
+const PEND=new Map();
+function drawPend(){if(!PEND.size)return;ctx.save();
+ PEND.forEach((v,k)=>{let[i,j]=k.split(',').map(Number),p=cellPts(i,j);ctx.fillStyle=v==='a'?'rgba(80,85,92,.65)':v==='f'?'rgba(176,122,69,.55)':'rgba(217,178,122,.7)';
+  ctx.beginPath();p.forEach((q,n)=>n?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fill();ctx.setLineDash([6,5]);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.setLineDash([])});
+ ctx.restore()}
+function pendTotal(){let t=0;PEND.forEach(v=>t+=TOOLS[v].p);return t}
+function confirmPend(){let t=pendTotal();if(coins<t){toast('Faltam '+(t-coins)+' moedas para esses blocos');if(window.SND)SND.play('error');return}
+ coins-=t;PEND.forEach((v,k)=>{let[i,j]=k.split(',').map(Number),x=(i-j)*HX,y=(i+j)*HY+HY;decorIdx(x,y).forEach(n=>decorGone.add(n));if(v==='f')FENCES.add(k);else ROADS.set(k,v)});
+ let n=PEND.size;PEND.clear();updateHud();save();if(window.SND)SND.play('coin');toast(n+' bloco'+(n>1?'s':'')+' construído'+(n>1?'s':'')+' · −'+t+' moedas')}
+function cancelPend(){PEND.clear()}
+function toScreen(x,y){let r=canvas.getBoundingClientRect();return[r.left+(x-camX)*scale,r.top+(y-camY)*scale]}
+(function loopPend(){const B=document.getElementById('pendBox');if(B){if(PEND.size){let best=null;PEND.forEach((v,k)=>{let[i,j]=k.split(',').map(Number);if(!best||i+j>best[0]+best[1])best=[i,j]});
+  let[sx,sy]=toScreen((best[0]-best[1])*HX,(best[0]+best[1])*HY+2*HY);sx=Math.max(110,Math.min(innerWidth-110,sx));sy=Math.max(110,Math.min(innerHeight-70,sy+14));
+  B.style.left=sx+'px';B.style.top=sy+'px';B.style.display='flex';B.querySelector('span').textContent=PEND.size+' bloco'+(PEND.size>1?'s':'')+' · '+pendTotal()+' 🪙'}else B.style.display='none'}requestAnimationFrame(loopPend)})();
+/* opções ao tocar numa estrada ou cerca pronta */
+function linked(k){let isF=FENCES.has(k),v=ROADS.get(k),seen=new Set([k]),st=[k];while(st.length){let[i,j]=st.pop().split(',').map(Number);for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1]]){let n=(i+di)+','+(j+dj);if(seen.has(n))continue;if(isF?FENCES.has(n):ROADS.get(n)===v){seen.add(n);st.push(n)}}}return[...seen]}
+function refund(k){if(FENCES.has(k)){FENCES.delete(k);return 4}let v=ROADS.get(k);ROADS.delete(k);return Math.floor(TOOLS[v].p/2)}
+function roadPop(k){const P=document.getElementById('roadPop');let[i,j]=k.split(',').map(Number),[sx,sy]=toScreen((i-j)*HX,(i+j)*HY+HY);
+ let isF=FENCES.has(k),v=ROADS.get(k),nome=isF?'Cerca':v==='a'?'Asfalto':'Estrada de terra',all=linked(k).length,other=v==='a'?'t':'a';
+ P.innerHTML='<b>'+nome+'</b>'+
+  '<button onclick="roadAct(\'one\',\''+k+'\')">🗑️ Remover este bloco <small>+'+(isF?4:Math.floor(TOOLS[v].p/2))+'</small></button>'+
+  (all>1?'<button onclick="roadAct(\'all\',\''+k+'\')">🧹 Remover trecho inteiro <small>'+all+' blocos</small></button>':'')+
+  (isF?'':'<button onclick="roadAct(\'swap\',\''+k+'\')">🔁 Trocar trecho para '+(other==='a'?'asfalto':'terra')+' <small>'+(other==='a'?all*TOOLS.a.p+' 🪙':'grátis')+'</small></button>')+
+  '<button class="no" onclick="closeRoadPop()">Fechar</button>';
+ P.style.left=Math.max(130,Math.min(innerWidth-130,sx))+'px';P.style.top=Math.max(90,Math.min(innerHeight-230,sy+20))+'px';P.classList.add('on');window._popK=k;if(window.SND)SND.play('click')}
+function closeRoadPop(){document.getElementById('roadPop').classList.remove('on')}
+function roadAct(a,k){closeRoadPop();let g=0;
+ if(a==='one')g=refund(k);
+ else if(a==='all')linked(k).forEach(q=>g+=refund(q));
+ else{let L=linked(k),v=ROADS.get(k),to=v==='a'?'t':'a',cost=to==='a'?L.length*TOOLS.a.p:0;if(coins<cost){toast('Faltam '+(cost-coins)+' moedas');return}coins-=cost;L.forEach(q=>ROADS.set(q,to));save();updateHud();toast('Trecho trocado para '+(to==='a'?'asfalto':'terra'));return}
+ coins+=g;updateHud();save();toast('Removido · +'+g+' moedas devolvidas')}
+/* janela Construir */
+function openBuild(){const T=(k,e,n,p)=>`<button class="bt${tool===k&&editMode?' sel':''}" onclick="pickTool('${k}')"><span>${e}</span>${n}<small>${p}</small></button>`;
+ openPanel('Construir',`<p class="sub">Escolha o que fazer. A janela fecha e você desenha no mapa.</p><h4>Caminhos e cercas</h4><div class="bgrid">${T('m','✋','Mover','grátis')}${T('t','🟫','Terra','5 🪙')}${T('a','⬛','Asfalto','12 🪙')}${T('f','🪵','Cerca','8 🪙')}</div>
+ <h4>Decoração</h4><div class="bgrid">${DECOCAT.map(d=>`<button class="bt" onclick="buyDeco('${d.c}')"><img src="images/${d.k}.png" alt="">${d.n}<small>${d.p} 🪙</small></button>`).join('')}<button class="bt" onclick="buyField()"><img src="images/empty_plot.png" alt="">Plantação<small>800 🪙</small></button></div>
+ <p class="sub">Dica: toque numa estrada ou cerca pronta para remover ou trocar.</p>`)}
+function pickTool(k){closePanels();enterEdit(k)}
+const TNAME={m:['✋','Mover'],t:['🟫','Terra'],a:['⬛','Asfalto'],f:['🪵','Cerca']};
+enterEdit=function(t){if(!t){openBuild();return}editMode=true;tool=t;roadMode=t!=='m';document.body.classList.add('edit');
+ const C=document.getElementById('toolChip');C.innerHTML='<span>'+TNAME[t][0]+' '+TNAME[t][1]+'</span><small>'+(t==='m'?'arraste as construções':'arraste o dedo no chão')+'</small><button onclick="openBuild()">Trocar</button><button class="ok" onclick="exitEdit()">Concluir</button>';
+ toast(t==='m'?'Arraste qualquer construção para mudar de lugar':'Arraste o dedo para marcar os blocos e depois confirme',3000)};
+exitEdit=function(){if(PEND.size){cancelPend();toast('Blocos não confirmados foram descartados')}else toast('Fazenda salva!');editMode=false;roadMode=false;tool='m';document.body.classList.remove('edit');closeRoadPop();save()};
+(function(){const css=document.createElement('style');css.textContent=`
+ #top{min-height:0!important;padding:6px 10px!important;background:linear-gradient(180deg,#1f6b3a,#14502b)!important;border-bottom:2px solid #e8b84a!important;box-shadow:0 2px 10px #0005!important}
+ .brand{font-size:16px!important;letter-spacing:.5px}
+ .stats{gap:6px!important;flex-wrap:nowrap!important}
+ .stat{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.28)!important;border:1px solid rgba(255,220,130,.55)!important;border-radius:14px!important;padding:2px 9px 2px 3px!important;font-size:12px!important;font-weight:900;color:#fff}
+ .stat i{font-style:normal;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:linear-gradient(#ffe9a8,#e7a529);box-shadow:inset 0 -2px 0 #b97710}
+ .stat b{color:#ffe9a8!important}
+ .rb{width:46px!important;height:46px!important;font-size:22px!important;border-width:2px!important;box-shadow:0 3px 0 #b06a12,0 5px 10px #0004!important}
+ .rb.big{width:56px!important;height:56px!important;font-size:27px!important;box-shadow:0 3px 0 #23701f,0 5px 10px #0004!important}
+ .rb small{font-size:9px!important;bottom:-14px!important}
+ #hGift{left:10px!important;top:64px!important;bottom:auto!important}#hMis{left:10px!important;top:128px!important;bottom:auto!important}#hLand{left:10px!important;top:192px!important;bottom:auto!important}
+ #hShop{right:10px!important;bottom:20px!important;left:auto!important}#hEdit{right:14px!important;bottom:96px!important;left:auto!important}#hTractor{right:14px!important;bottom:160px!important;left:auto!important}
+ #zoomBox{right:auto!important;left:12px!important;bottom:20px!important;top:auto!important;flex-direction:column!important;gap:6px!important}#zoomBox button{width:36px!important;height:36px!important;font-size:17px!important}
+ #sndBtn{top:58px!important;right:10px!important;width:34px!important;height:34px!important;font-size:15px!important}
+ #shelf,#editTag{display:none!important}
+ #toolChip{position:fixed;top:56px;left:50%;translate:-50% 0;z-index:30;display:none;align-items:center;gap:8px;background:rgba(22,60,34,.94);border:1px solid #e8b84a;color:#fff;padding:6px 6px 6px 12px;border-radius:22px;box-shadow:0 4px 12px #0005;white-space:nowrap;max-width:96vw}
+ body.edit #toolChip{display:flex}#toolChip span{font-weight:900;font-size:14px}#toolChip small{font-size:11px;opacity:.75}
+ #toolChip button{border:0;border-radius:16px;padding:7px 12px;font-weight:900;font-size:12px;background:#fff8e6;color:#5a3410;min-height:34px}#toolChip button.ok{background:linear-gradient(#9be27a,#43a047);color:#fff}
+ #pendBox{position:fixed;z-index:31;display:none;translate:-50% 0;align-items:center;gap:6px;background:#fff;border-radius:22px;padding:5px;box-shadow:0 6px 16px #0006;border:2px solid #e8b84a}
+ #pendBox span{font-weight:900;font-size:12px;color:#5a3410;padding:0 6px;white-space:nowrap}
+ #pendBox button{width:40px;height:40px;border-radius:50%;border:0;font-size:20px;font-weight:900;color:#fff;display:grid;place-items:center}#pendBox .y{background:linear-gradient(#9be27a,#43a047)}#pendBox .n{background:linear-gradient(#ff8a80,#e53935)}
+ #roadPop{position:fixed;z-index:32;display:none;translate:-50% 0;flex-direction:column;gap:6px;background:#fff8e6;border:2px solid #e8b84a;border-radius:16px;padding:10px;box-shadow:0 8px 20px #0006;min-width:230px;animation:pop .18s ease-out}
+ #roadPop.on{display:flex}#roadPop b{color:#5a3410;text-align:center}#roadPop button{border:0;border-radius:12px;padding:9px 10px;background:#fff;color:#5a3410;font-weight:800;font-size:13px;text-align:left;display:flex;justify-content:space-between;gap:8px;min-height:40px;align-items:center;box-shadow:0 2px 0 #e2c58f}#roadPop button small{color:#2e7d32;font-weight:900}#roadPop button.no{justify-content:center;background:#efe3c8}
+ #panel{z-index:60!important;position:fixed!important}
+ #panel h4{margin:10px 0 6px;font-size:13px;color:#5a3410}#panel .sub{font-size:12px;opacity:.75;margin:4px 0}
+ .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:6px}
+ .bt{border:2px solid #e2bd7c;border-radius:12px;background:#fff;color:#5a3410;font-weight:900;font-size:11px;padding:5px 3px;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:64px;justify-content:center}
+ .bt span{font-size:20px;line-height:1}.bt img{height:28px;max-width:52px;object-fit:contain}.bt small{font-size:10px;color:#2e7d32}.bt.sel{background:linear-gradient(#fff6a9,#ffcf4a);border-color:#e39b19}.bt:active{transform:scale(.94)}
+ `;document.head.appendChild(css);
+ for(const[id,h]of[['toolChip',''],['pendBox','<span></span><button class="y" aria-label="Confirmar" onclick="confirmPend()">✓</button><button class="n" aria-label="Cancelar" onclick="cancelPend()">✕</button>'],['roadPop','']]){let d=document.createElement('div');d.id=id;d.innerHTML=h;document.body.appendChild(d)}
+ let e=document.getElementById('hEdit');if(e){e.innerHTML='🔨<small>Construir</small><i class="bd"></i>';e.setAttribute('onclick','openBuild()')}
+ document.addEventListener('pointerdown',ev=>{const P=document.getElementById('roadPop');if(P.classList.contains('on')&&!ev.target.closest('#roadPop'))closeRoadPop()},true);
+})();
 
 function openDecoShop(){openPanel('Decoração e construção','<div class="shopgrid">'+DECOCAT.map(d=>'<div class="shopitem"><img src="images/'+d.k+'.png"><strong>'+d.n+'</strong><span>'+d.p+' moedas</span><br><button onclick="buyDeco(\''+d.c+'\')">Comprar</button></div>').join('')+
  '<div class="shopitem"><img src="images/empty_plot.png"><strong>Plantação extra</strong><span>800 moedas · nível 3</span><br><button onclick="buyField()">Comprar</button></div>'+
