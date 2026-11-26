@@ -51,11 +51,11 @@ function cellAt(x,y){for(const F of fields()){let u=(x-F.x)/HX,v=(y-(F.y-F.n*HY)
 function zoneAt(x,y){return ZONES.find(z=>!zonesOwned.includes(z.id)&&Math.abs(x-z.x)/(z.n*HX)+Math.abs(y-z.y)/(z.n*HY)<=1)}
 buildField();
 let animals=[{type:'cow',x:0,y:0,start:1,dx:1,dy:0.2,product:'Leite'},{type:'pig',x:0,y:0,start:1,dx:-.6,dy:.5,product:''},{type:'sheep',x:0,y:0,start:1,dx:.3,dy:-.7,product:'Lã'},{type:'chicken',x:0,y:0,start:1,dx:.8,dy:-.3,product:'Ovos'},{type:'dog',x:960,y:610,dx:-.5,dy:-.2,product:''}];
-function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;let zo=s.zonesOwned||[];if(zo.length){let r=zo.reduce((a,z)=>a+(OLDZ[z]||0),0);coins+=r;setTimeout(()=>toast('Terrenos antigos trocados por terreno contínuo: +'+r+' moedas devolvidas',5000),1500)}ROADS=new Map((s.roads||[]).map(r=>Array.isArray(r)?r:[r,'t']));FENCES=new Set(s.fences||[]);if(s.landSet)LAND=new Set(s.landSet);landBought=s.landBought||0;EXTRAS=s.extras||[];DECO=(s.deco||[]).map(d=>makeDeco(d.c,d.x,d.y,d.id)).filter(Boolean);decorGone=new Set(s.gone||[]);applyLayout(s.lay);buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??'';tractorUntil=0;energyTs=s.energyTs??Date.now()}}catch(e){}}
+function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;STORE=Object.assign({},s.store||{});ORDERS=s.orders||[];barnCap=s.barnCap||60;let zo=s.zonesOwned||[];if(zo.length){let r=zo.reduce((a,z)=>a+(OLDZ[z]||0),0);coins+=r;setTimeout(()=>toast('Terrenos antigos trocados por terreno contínuo: +'+r+' moedas devolvidas',5000),1500)}ROADS=new Map((s.roads||[]).map(r=>Array.isArray(r)?r:[r,'t']));FENCES=new Set(s.fences||[]);if(s.landSet)LAND=new Set(s.landSet);landBought=s.landBought||0;EXTRAS=s.extras||[];DECO=(s.deco||[]).map(d=>makeDeco(d.c,d.x,d.y,d.id)).filter(Boolean);decorGone=new Set(s.gone||[]);applyLayout(s.lay);buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??'';tractorUntil=0;energyTs=s.energyTs??Date.now()}}catch(e){}}
 let energyTs=Date.now();
-function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify({coins,energy,xp,level,land,roads:[...ROADS],fences:[...FENCES],landSet:[...LAND],landBought,extras:EXTRAS,deco:DECO.map(d=>({id:d.id,c:d.c,x:d.x,y:d.y})),gone:[...decorGone],lay:layout(),plots,animalProducts,dailyStamp,energyTs}))}
+function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify({coins,energy,xp,level,land,store:STORE,orders:ORDERS,barnCap,roads:[...ROADS],fences:[...FENCES],landSet:[...LAND],landBought,extras:EXTRAS,deco:DECO.map(d=>({id:d.id,c:d.c,x:d.x,y:d.y})),gone:[...decorGone],lay:layout(),plots,animalProducts,dailyStamp,energyTs}))}
 function regen(){let n=Math.floor((Date.now()-energyTs)/60000);if(n>0){if(energy<30)energy=Math.min(30,energy+n);energyTs+=n*60000;updateHud()}if(energy>=30)energyTs=Date.now()}
-function resize(){let r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);viewW=r.width;viewH=r.height;minS=Math.min(viewW/(WX1-WX0),viewH/(WY1-WY0));scale=viewH>viewW?Math.max(minS,viewW*1.7/W,viewH*.78/H):Math.max(viewW/W,viewH/H);camX=(viewH>viewW?850:W/2)-viewW/scale/2;camY=(viewH>viewW?560:H/2)-viewH/scale/2;clampCam();worldDraw(performance.now())}
+function resize(){if(viewW&&scale&&window._cc!==null)window._cc=[camX+viewW/scale/2,camY+viewH/scale/2];let r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);viewW=r.width;viewH=r.height;minS=Math.min(viewW/(WX1-WX0),viewH/(WY1-WY0));scale=viewH>viewW?Math.max(minS,viewW*1.7/W,viewH*.78/H):Math.max(viewW/W,viewH/H);let cc=window._cc;camX=(cc?cc[0]:(viewH>viewW?850:W/2))-viewW/scale/2;camY=(cc?cc[1]:(viewH>viewW?560:H/2))-viewH/scale/2;window._cc=undefined;clampCam();worldDraw(performance.now())}
 
 /* terra em volta da fazenda, com árvores e áreas à venda */
 const inIsland=(x,y)=>Math.abs(x-800)/1080+Math.abs(y-640)/640<1;
@@ -149,20 +149,20 @@ function updateHud(){document.getElementById('coins').textContent=coins;document
 function gainXP(n){xp+=n;while(xp>=level*100){xp-=level*100;level++;coins+=50;toast('Subiu para o nível '+level+'! +50 moedas')}updateHud();save()}
 function toast(s){let e=document.getElementById('toast');e.textContent=s;e.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>e.style.opacity=0,1900)}
 function choosePlant(c){selectedCrop=c;document.querySelectorAll('.action').forEach(x=>x.classList.remove('selected'));document.getElementById('plantBtn').classList.add('selected');toast('Semente selecionada: '+({wheat:'trigo',corn:'milho',carrot:'cenoura',strawberry:'morango',lettuce:'alface'}[c]))}
-function plantAt(p,quiet){if(editMode)return;if(p.crop&&Date.now()>=p.readyAt){let value={wheat:18,corn:24,carrot:30,strawberry:38,lettuce:32}[p.crop];coins+=value;energy=Math.min(30,energy+1);gainXP(12);p.crop=null;floaters.push({x:p.x,y:p.y-30,txt:'+'+value,t:0});if(!quiet)toast('Colheita realizada! +'+value+' moedas');updateHud();save();return}if(p.crop){if(!quiet)toast('A plantação ainda está crescendo');return}if(energy<1){toast('Sem energia. Aguarde ou receba o presente diário.');return}let cost={wheat:3,corn:5,carrot:6,strawberry:8,lettuce:7}[selectedCrop];if(coins<cost){toast('Moedas insuficientes');return}coins-=cost;floaters.push({x:p.x,y:p.y-30,txt:'-'+cost,t:0,neg:1});energy--;p.crop=selectedCrop;p.planted=Date.now();p.readyAt=Date.now()+({wheat:35000,corn:50000,carrot:60000,strawberry:75000,lettuce:65000}[selectedCrop]);p.stage=1;updateHud();save();if(!quiet)toast('Semente plantada! Dica: arraste o dedo pela plantação para plantar vários.');}
+function plantAt(p,quiet){if(editMode)return;if(p.crop&&Date.now()>=p.readyAt){if(!storeAdd(p.crop,1))return;let nm=ITEMS[p.crop].n;energy=Math.min(30,energy+1);gainXP(12);p.crop=null;floaters.push({x:p.x,y:p.y-30,txt:'+1 '+nm,t:0});if(!quiet)toast(nm+' guardado no celeiro');updateHud();save();return}if(p.crop){if(!quiet)toast('A plantação ainda está crescendo');return}if(energy<1){toast('Sem energia. Aguarde ou receba o presente diário.');return}let cost={wheat:3,corn:5,carrot:6,strawberry:8,lettuce:7}[selectedCrop];if(coins<cost){toast('Moedas insuficientes');return}coins-=cost;floaters.push({x:p.x,y:p.y-30,txt:'-'+cost,t:0,neg:1});energy--;p.crop=selectedCrop;p.planted=Date.now();p.readyAt=Date.now()+({wheat:35000,corn:50000,carrot:60000,strawberry:75000,lettuce:65000}[selectedCrop]);p.stage=1;updateHud();save();if(!quiet)toast('Semente plantada! Dica: arraste o dedo pela plantação para plantar vários.');}
 let floaters=[];
 const PROD={cow:{n:'Leite',e:'🥛',t:180,r:28,nome:'A vaca'},sheep:{n:'Lã',e:'🧶',t:240,r:32,nome:'A ovelha'},chicken:{n:'Ovos',e:'🥚',t:90,r:18,nome:'A galinha'},pig:{n:'Bacon',e:'🥓',t:300,r:40,nome:'O porco'}};
 function prodReady(k){let v=animalProducts[k]||0;return v<1e12||Date.now()>=v}
 function prodLeft(k){return Math.max(0,Math.ceil(((animalProducts[k]||0)-Date.now())/1000))}
 function collectAnimal(a){let key=a.type,P=PROD[key];if(!P){toast('O cachorro está feliz! 🐶');gainXP(2);return}
  if(!prodReady(key)){let s=prodLeft(key);toast(P.nome+' vai ter '+P.n.toLowerCase()+' em '+(s>=60?Math.floor(s/60)+' min '+(s%60)+' s':s+' s'));return}
- animalProducts[key]=Date.now()+P.t*1000;coins+=P.r;gainXP(8);floaters.push({x:a.x,y:a.y-80,txt:'+'+P.r+' '+P.e,t:0});toast(P.n+' recolhido! +'+P.r+' moedas');updateHud();save()}
+ if(!storeAdd(key,1))return;animalProducts[key]=Date.now()+P.t*1000;gainXP(8);floaters.push({x:a.x,y:a.y-80,txt:'+1 '+P.e,t:0});toast(P.n+' guardado no celeiro');updateHud();save()}
 let wasReady={};setInterval(()=>{for(const k in PROD){let r=prodReady(k);if(r&&wasReady[k]===false&&animals.some(a=>a.type===k)){toast(PROD[k].e+' '+PROD[k].nome+' tem '+PROD[k].n.toLowerCase()+' para recolher!');if(window.SND)SND.play(k)}wasReady[k]=r}},2000);
 function drawBubbles(t){animals.forEach(a=>{let P=PROD[a.type];if(!P||!prodReady(a.type))return;let h=(SZ[a.type]||80)*1.05,bob=Math.sin(t/250+a.x)*4,x=a.x,y=a.y-h-18+bob;
   ctx.save();ctx.fillStyle='#fff';ctx.strokeStyle='#e79a24';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,19,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-6,y+16);ctx.lineTo(x+6,y+16);ctx.lineTo(x,y+26);ctx.closePath();ctx.fill();
   ctx.font='22px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(P.e,x,y+1);ctx.restore()});
  let T=OBJ.tractor,n=plots.filter(p=>p.crop&&Date.now()>=p.readyAt).length;if(n&&Date.now()>=tractorUntil){let bob=Math.sin(t/220)*4,x=T.x,y=T.y-T.h-14+bob;ctx.save();ctx.fillStyle='#4caf50';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x-34,y-17,68,32,16);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='900 16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🌾 '+n,x,y);ctx.restore()}}
-function hit(x,y){let c=cellAt(x,y);if(c){if(editMode)return true;if(!c.crop){seedRing(c);return true}plantAt(c);return true}if(!landAt(x,y)){let[a,b]=chunkOf(x,y);askLand(a,b);return true}{let T=OBJ.tractor;if(Math.abs(x-T.x)<T.w*.5&&y<T.y+8&&y>T.y-T.h){useTractor();return true}}{let[ri,rj]=rCell(x,y),rk=ri+','+rj;if(!editMode&&(ROADS.has(rk)||FENCES.has(rk))){let hitA=animals.some(a=>Math.abs(x-a.x)<40&&Math.abs(y-a.y+30)<40);if(!hitA){roadPop(rk);return true}}}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
+function hit(x,y){let c=cellAt(x,y);if(c){if(editMode)return true;if(!c.crop){seedRing(c);return true}plantAt(c);return true}if(extraHit(x,y))return true;if(!landAt(x,y)){let[a,b]=chunkOf(x,y);askLand(a,b);return true}{let T=OBJ.tractor;if(Math.abs(x-T.x)<T.w*.5&&y<T.y+8&&y>T.y-T.h){useTractor();return true}}{let[ri,rj]=rCell(x,y),rk=ri+','+rj;if(!editMode&&(ROADS.has(rk)||FENCES.has(rk))){let hitA=animals.some(a=>Math.abs(x-a.x)<40&&Math.abs(y-a.y+30)<40);if(!hitA){roadPop(rk);return true}}}for(let a of animals){if(Math.abs(x-a.x)<(SZ[a.type]||80)*.55&&Math.abs(y-(a.y-(SZ[a.type]||80)*.4))<(SZ[a.type]||80)*.5){collectAnimal(a);return true}}return false}
 let pointers=new Map(),drag=null,pinch=null,minS=.3;
 const OBJ={lake:{k:'lake',x:976,y:414,w:465,h:283,nome:'Lago',flat:1},house:{k:'house',x:280,y:430,w:270,h:270,nome:'Casa'},barn:{k:'barn',x:1210,y:360,w:250,h:230,nome:'Celeiro'},silo:{k:'silo',x:1370,y:310,w:100,h:220,nome:'Silo'},windmill:{k:'windmill',x:1450,y:520,w:170,h:260,nome:'Moinho'},well:{k:'well',x:350,y:618,w:115,h:160,nome:'Poço'},market:{k:'market',x:220,y:610,w:180,h:175,nome:'Feira'},tractor:{k:'tractor',x:610,y:845,w:125,h:110,nome:'Trator'}};
 let moving=null;
@@ -233,7 +233,7 @@ function useTractor(){if(TR){toast('O trator já está trabalhando');return}let 
  let T=OBJ.tractor,path=ready.map(p=>({x:p.x,y:p.y+6,p}));path.push({x:T.x,y:T.y,home:1});TR={x:T.x,y:T.y,path,k:0,n:0,face:1};tractorUntil=Date.now()+600000;save()}
 function stepTractor(dt){if(!TR)return;let g=TR.path[TR.k],dx=g.x-TR.x,dy=g.y-TR.y,d=Math.hypot(dx,dy),sp=g.home?260:150;
  if(Math.abs(dx)>1)TR.face=dx<0?-1:1;
- if(d<=sp*dt){TR.x=g.x;TR.y=g.y;if(g.p&&g.p.crop){let v=CROPV[g.p.crop]||20;coins+=v;floaters.push({x:g.p.x,y:g.p.y-30,txt:'+'+v,t:0});g.p.crop=null;TR.n++;gainXP(10);updateHud();if(window.SND)SND.play('coin')}
+ if(d<=sp*dt){TR.x=g.x;TR.y=g.y;if(g.p&&g.p.crop&&storeAdd(g.p.crop,1)){floaters.push({x:g.p.x,y:g.p.y-30,txt:'+1 '+ITEMS[g.p.crop].n,t:0});g.p.crop=null;TR.n++;gainXP(10);updateHud();if(window.SND)SND.play('coin')}
   TR.k++;if(TR.k>=TR.path.length){toast('🚜 Trator colheu '+TR.n+' canteiro'+(TR.n>1?'s':'')+'!');TR=null;tractorUntil=0;save()}}
  else{TR.x+=dx/d*sp*dt;TR.y+=dy/d*sp*dt}}
 function drawTractorAt(x,y,w,h,face){let im=img.tractor;if(!im||!im.naturalWidth)return;ctx.save();ctx.translate(x,y);ctx.scale(face,1);ctx.translate(0,Math.sin(performance.now()/60)*1.2);ctx.drawImage(im,-w/2,-h,w,h);ctx.restore()}
@@ -490,6 +490,70 @@ exitEdit=function(){if(PEND.size){cancelPend();toast('Blocos não confirmados fo
  let e=document.getElementById('hEdit');if(e){e.innerHTML='🔨<small>Construir</small><i class="bd"></i>';e.setAttribute('onclick','openBuild()')}
  document.addEventListener('pointerdown',ev=>{const P=document.getElementById('roadPop');if(P.classList.contains('on')&&!ev.target.closest('#roadPop'))closeRoadPop()},true);
 })();
+
+/* ===== v3.9: celeiro, pedidos, cortar árvores, trator pela estrada ===== */
+const ITEMS={wheat:{n:'Trigo',img:'images/wheat_3.png',v:18},corn:{n:'Milho',img:'images/corn_3.png',v:24},carrot:{n:'Cenoura',img:'images/carrot_3.png',v:30},strawberry:{n:'Morango',img:'images/strawberry_3.png',v:38},lettuce:{n:'Alface',img:'images/lettuce_3.png',v:32},
+ cow:{n:'Leite',e:'🥛',v:28},chicken:{n:'Ovos',e:'🥚',v:18},sheep:{n:'Lã',e:'🧶',v:32},pig:{n:'Bacon',e:'🥓',v:40}};
+let STORE={},ORDERS=[],barnCap=60;
+const icoI=k=>ITEMS[k].img?'<img src="'+ITEMS[k].img+'" alt="">':'<span>'+ITEMS[k].e+'</span>';
+const stored=()=>Object.values(STORE).reduce((a,b)=>a+b,0);
+function storeAdd(k,n){if(stored()+n>barnCap){toast('Celeiro cheio! Venda ou entregue pedidos para liberar espaço');if(window.SND)SND.play('error');return false}STORE[k]=(STORE[k]||0)+n;return true}
+const CUST=['Padaria da Vila','Mercadinho Bom Preço','Dona Cida','Restaurante Sabor da Roça','Seu Jorge','Lanchonete do Zé','Feira de Domingo','Vó Benedita'];
+function newOrder(){let keys=['wheat','corn','carrot','strawberry','lettuce'].concat(Object.keys(PROD).filter(k=>animals.some(a=>a.type===k)));
+ let n=1+Math.floor(Math.random()*Math.min(3,1+level/2)),pick=keys.sort(()=>Math.random()-.5).slice(0,n),items={},val=0;
+ pick.forEach(k=>{let q=1+Math.floor(Math.random()*(2+level));items[k]=q;val+=q*ITEMS[k].v});
+ return{who:CUST[Math.floor(Math.random()*CUST.length)],items,coins:Math.round(val*1.6/5)*5,xp:Math.round(val*.25)+5}}
+function fillOrders(){while(ORDERS.length<3)ORDERS.push(newOrder())}
+const canFill=o=>Object.entries(o.items).every(([k,q])=>(STORE[k]||0)>=q);
+function deliver(n){let o=ORDERS[n];if(!canFill(o)){toast('Falta produto no celeiro');return}Object.entries(o.items).forEach(([k,q])=>STORE[k]-=q);
+ coins+=o.coins;gainXP(o.xp);ORDERS[n]=newOrder();updateHud();save();if(window.SND)SND.play('coin');let M=OBJ.market;floaters.push({x:M.x,y:M.y-M.h,txt:'+'+o.coins,t:0});toast('Entregue para '+o.who+'! +'+o.coins+' moedas');openOrders()}
+function openOrders(){fillOrders();openPanel('Pedidos da feira','<p class="sub">Clientes pagam bem mais que o celeiro.</p>'+ORDERS.map((o,n)=>'<div class="ord"><div class="oh"><b>'+o.who+'</b><span>+'+o.coins+' 🪙 · +'+o.xp+' ✨</span></div><div class="need">'+Object.entries(o.items).map(([k,q])=>'<i class="'+((STORE[k]||0)>=q?'ok':'')+'">'+icoI(k)+(Math.min(STORE[k]||0,q))+'/'+q+'</i>').join('')+'</div><div class="ob"><button class="panelbtn" '+(canFill(o)?'':'disabled')+' onclick="deliver('+n+')">Entregar</button><button class="panelbtn alt" onclick="ORDERS['+n+']=newOrder();save();openOrders()">Trocar</button></div></div>').join(''))}
+function sellItem(k,all){let q=all?STORE[k]:1;if(!q)return;STORE[k]-=q;let v=q*ITEMS[k].v;coins+=v;updateHud();save();if(window.SND)SND.play('coin');toast('Vendido: +'+v+' moedas');openBarn()}
+function sellAll(){let v=0;for(const k in STORE){v+=STORE[k]*ITEMS[k].v;STORE[k]=0}if(!v)return;coins+=v;updateHud();save();if(window.SND)SND.play('coin');toast('Tudo vendido: +'+v+' moedas');openBarn()}
+function upBarn(){let c=barnCap*5;if(coins<c){toast('Faltam '+(c-coins)+' moedas');return}coins-=c;barnCap+=30;updateHud();save();toast('Celeiro maior: '+barnCap+' lugares');openBarn()}
+function openBarn(){let ks=Object.keys(STORE).filter(k=>STORE[k]>0),tot=ks.reduce((a,k)=>a+STORE[k]*ITEMS[k].v,0);
+ openPanel('Celeiro','<div class="cap"><div style="width:'+Math.min(100,stored()/barnCap*100)+'%"></div><span>'+stored()+' / '+barnCap+'</span></div>'+
+ (ks.length?ks.map(k=>'<div class="srow">'+icoI(k)+'<b>'+ITEMS[k].n+' × '+STORE[k]+'</b><small>'+ITEMS[k].v+' 🪙 cada</small><button onclick="sellItem(\''+k+'\')">Vender 1</button><button onclick="sellItem(\''+k+'\',1)">Todos</button></div>').join('')+'<button class="panelbtn" style="width:100%;margin-top:6px" onclick="sellAll()">Vender tudo · '+tot+' 🪙</button>':'<p class="sub">Vazio. Colha as plantações e recolha os produtos dos animais.</p>')+
+ '<button class="panelbtn alt" style="width:100%;margin-top:6px" onclick="openOrders()">📦 Ver pedidos (pagam mais)</button><button class="panelbtn alt" style="width:100%;margin-top:6px" onclick="upBarn()">Aumentar celeiro +30 · '+barnCap*5+' 🪙</button>')}
+/* janelinha de opções reutilizável */
+function popAt(x,y,title,btns){const P=document.getElementById('roadPop'),[sx,sy]=toScreen(x,y);P.innerHTML='<b>'+title+'</b>'+btns.map((b,i)=>'<button data-i="'+i+'">'+b[0]+(b[1]?' <small>'+b[1]+'</small>':'')+'</button>').join('')+'<button class="no">Fechar</button>';
+ P.querySelectorAll('button').forEach(e=>e.onclick=()=>{closeRoadPop();if(e.dataset.i!==undefined)btns[+e.dataset.i][2]()});
+ P.style.left=Math.max(110,Math.min(innerWidth-110,sx))+'px';P.style.top=Math.max(90,Math.min(innerHeight-200,sy+16))+'px';P.classList.add('on')}
+function cutTree(n){let c=15;if(coins<c){toast('Precisa de '+c+' moedas para cortar');return}coins-=c;decorGone.add(n);gainXP(5);updateHud();save();if(window.SND)SND.play('plant');toast('Árvore cortada! Espaço liberado')}
+function sellDeco(d){DECO=DECO.filter(q=>q!==d);let v=Math.floor((d.p||20)/2);coins+=v;updateHud();save();toast(d.nome+' vendido: +'+v+' moedas')}
+function inObj(o,x,y){return Math.abs(x-o.x)<o.w*.42&&y<o.y+6&&y>o.y-o.h*.9}
+function extraHit(x,y){if(editMode)return false;
+ if(inObj(OBJ.barn,x,y)||inObj(OBJ.silo,x,y)){openBarn();return true}
+ if(inObj(OBJ.market,x,y)){openOrders();return true}
+ for(const d of [...DECO].sort((a,b)=>b.y-a.y))if(inObj(d,x,y)){popAt(d.x,d.y,d.nome,[['💰 Vender','+'+Math.floor((d.p||20)/2),()=>sellDeco(d)],['✋ Mudar de lugar','',()=>enterEdit('m')]]);return true}
+ let t=decorIdx(x,y-20);if(!t.length)t=decorIdx(x,y);if(t.length){let n=t[0],d=DECOR[n];popAt(d.x,d.y,'Árvore',[['🪓 Cortar','15 🪙 · +5 ✨',()=>cutTree(n)]]);return true}
+ return false}
+/* trator: vai e volta pela estrada quando ela existe */
+function roadRoute(fromX,fromY,toX,toY){if(!ROADS.size)return null;const C=k=>{let[i,j]=k.split(',').map(Number);return[(i-j)*HX,(i+j)*HY+HY]};
+ let s=null,sd=1e9;ROADS.forEach((v,k)=>{let[c0,c1]=C(k),d=Math.hypot(c0-fromX,(c1-fromY)*1.6);if(d<sd){sd=d;s=k}});if(sd>130)return null;
+ let prev=new Map([[s,null]]),q=[s],best=s,bd=1e9;while(q.length){let k=q.shift(),[c0,c1]=C(k),d=Math.hypot(c0-toX,c1-toY);if(d<bd){bd=d;best=k}let[i,j]=k.split(',').map(Number);
+  for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1]]){let n=(i+di)+','+(j+dj);if(ROADS.has(n)&&!prev.has(n)){prev.set(n,k);q.push(n)}}}
+ let path=[],k=best;while(k){path.unshift(C(k));k=prev.get(k)}return path}
+useTractor=function(){if(TR){toast('O trator já está trabalhando');return}let ready=plots.filter(p=>p.crop&&Date.now()>=p.readyAt);if(!ready.length){toast('Ainda não há plantações prontas');return}
+ if(stored()>=barnCap){toast('Celeiro cheio! Venda antes de colher');return}if(energy<2){toast('O trator precisa de 2 energias');return}energy-=2;updateHud();
+ ready.sort((a,b)=>(a.f>b.f?1:a.f<b.f?-1:0)||(a.i-b.i)||((a.i%2?-1:1)*(a.j-b.j)));
+ let T=OBJ.tractor,r=roadRoute(T.x,T.y,ready[0].x,ready[0].y)||[],go=r.map(([x,y])=>({x,y,road:1})),back=[...go].reverse();
+ let path=go.concat(ready.map(p=>({x:p.x,y:p.y+6,p}))).concat(back).concat([{x:T.x,y:T.y,home:1}]);TR={x:T.x,y:T.y,path,k:0,n:0,face:1};tractorUntil=Date.now()+600000;save()};
+/* giro de tela: mantém o mesmo ponto no centro */
+(function(){const re=()=>setTimeout(()=>{try{resize()}catch(e){}},250);addEventListener('orientationchange',re);try{new ResizeObserver(()=>resize()).observe(canvas)}catch(e){}})();
+zoomReset=function(){window._cc=null;resize()};
+(function(){const css=document.createElement('style');css.textContent=`
+ .ord{background:rgba(255,255,255,.75);border-radius:12px;padding:7px;margin:5px 0}.oh{display:flex;justify-content:space-between;gap:6px;font-size:12px}.oh span{color:#2e7d32;font-weight:900;white-space:nowrap}
+ .need{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0}.need i{font-style:normal;display:flex;align-items:center;gap:3px;background:#f5ead4;border-radius:10px;padding:2px 7px 2px 3px;font-weight:900;font-size:11px;color:#5a3410}.need i.ok{background:#d9f2cf}
+ .need img,.srow img{width:22px;height:22px;object-fit:contain}.need span,.srow span{font-size:16px}
+ .ob{display:flex;gap:6px}.ob .panelbtn{flex:1;padding:6px;font-size:12px;min-height:34px}.panelbtn[disabled]{opacity:.45}.panelbtn.alt{background:#efe3c8!important;color:#5a3410!important}
+ .cap{position:relative;height:18px;border-radius:9px;background:rgba(0,0,0,.15);overflow:hidden;margin:4px 0 8px}.cap div{height:100%;background:linear-gradient(90deg,#9be27a,#43a047)}.cap span{position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:900;color:#1f3a20}
+ .srow{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.75);border-radius:10px;padding:4px 6px;margin:4px 0;font-size:12px}.srow b{flex:1}.srow small{font-size:10px;color:#2e7d32;white-space:nowrap}
+ .srow button{border:0;border-radius:8px;background:#43a047;color:#fff;font-weight:900;font-size:11px;padding:6px 7px;min-height:30px}
+ #hBarn{left:10px!important;top:256px!important;bottom:auto!important}#hOrd{left:10px!important;top:320px!important;bottom:auto!important}
+ @media(max-height:560px){#hGift,#hMis,#hLand,#hBarn,#hOrd{top:58px!important}#hMis{left:62px!important}#hLand{left:114px!important}#hBarn{left:166px!important}#hOrd{left:218px!important}#zoomBox{bottom:14px!important}}`;document.head.appendChild(css);
+ const H=document.getElementById('hud');if(H){H.insertAdjacentHTML('beforeend','<button class="rb" id="hBarn" aria-label="Celeiro" onclick="openBarn()">🏚️<small>Celeiro</small><i class="bd"></i></button><button class="rb" id="hOrd" aria-label="Pedidos" onclick="openOrders()">📦<small>Pedidos</small><i class="bd"></i></button>')}
+ setInterval(()=>{fillOrders();let b=document.getElementById('hOrd'),n=ORDERS.filter(canFill).length;if(b){b.classList.toggle('has',n>0);b.querySelector('.bd').textContent=n}let c=document.getElementById('hBarn');if(c){let f=stored()>=barnCap;c.classList.toggle('has',f);c.querySelector('.bd').textContent='!'}},1000)})();
 
 function openDecoShop(){openPanel('Decoração e construção','<div class="shopgrid">'+DECOCAT.map(d=>'<div class="shopitem"><img src="images/'+d.k+'.png"><strong>'+d.n+'</strong><span>'+d.p+' moedas</span><br><button onclick="buyDeco(\''+d.c+'\')">Comprar</button></div>').join('')+
  '<div class="shopitem"><img src="images/empty_plot.png"><strong>Plantação extra</strong><span>800 moedas · nível 3</span><br><button onclick="buyField()">Comprar</button></div>'+
