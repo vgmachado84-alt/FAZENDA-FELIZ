@@ -51,7 +51,7 @@ function cellAt(x,y){for(const F of fields()){let u=(x-F.x)/HX,v=(y-(F.y-F.n*HY)
 function zoneAt(x,y){return ZONES.find(z=>!zonesOwned.includes(z.id)&&Math.abs(x-z.x)/(z.n*HX)+Math.abs(y-z.y)/(z.n*HY)<=1)}
 buildField();
 let animals=[{type:'cow',x:0,y:0,start:1,dx:1,dy:0.2,product:'Leite'},{type:'pig',x:0,y:0,start:1,dx:-.6,dy:.5,product:''},{type:'sheep',x:0,y:0,start:1,dx:.3,dy:-.7,product:'Lã'},{type:'chicken',x:0,y:0,start:1,dx:.8,dy:-.3,product:'Ovos'},{type:'dog',x:960,y:610,dx:-.5,dy:-.2,product:''}];
-function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;STORE=Object.assign({},s.store||{});ORDERS=s.orders||[];barnCap=s.barnCap||60;let zo=s.zonesOwned||[];if(zo.length){let r=zo.reduce((a,z)=>a+(OLDZ[z]||0),0);coins+=r;setTimeout(()=>toast('Terrenos antigos trocados por terreno contínuo: +'+r+' moedas devolvidas',5000),1500)}ROADS=new Map((s.roads||[]).map(r=>Array.isArray(r)?r:[r,'t']));FENCES=new Set(s.fences||[]);if(s.landSet)LAND=new Set(s.landSet);landBought=s.landBought||0;EXTRAS=s.extras||[];DECO=(s.deco||[]).map(d=>makeDeco(d.c,d.x,d.y,d.id)).filter(Boolean);decorGone=new Set(s.gone||[]);applyLayout(s.lay);buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??'';tractorUntil=0;energyTs=s.energyTs??Date.now()}}catch(e){}}
+function load(){try{let s=JSON.parse(localStorage.getItem('fazendaFelizSave')||'null');if(s){coins=s.coins??coins;energy=s.energy??energy;xp=s.xp??xp;level=s.level??level;land=s.land??land;STORE=Object.assign({},s.store||{});ORDERS=s.orders||[];barnCap=Math.max(s.barnCap||0,100);let zo=s.zonesOwned||[];if(zo.length){let r=zo.reduce((a,z)=>a+(OLDZ[z]||0),0);coins+=r;setTimeout(()=>toast('Terrenos antigos trocados por terreno contínuo: +'+r+' moedas devolvidas',5000),1500)}ROADS=new Map((s.roads||[]).map(r=>Array.isArray(r)?r:[r,'t']));FENCES=new Set(s.fences||[]);if(s.landSet)LAND=new Set(s.landSet);landBought=s.landBought||0;EXTRAS=s.extras||[];DECO=(s.deco||[]).map(d=>makeDeco(d.c,d.x,d.y,d.id)).filter(Boolean);decorGone=new Set(s.gone||[]);applyLayout(s.lay);buildField(s.plots||[]);animalProducts=s.animalProducts??animalProducts;dailyStamp=s.dailyStamp??'';tractorUntil=0;energyTs=s.energyTs??Date.now()}}catch(e){}}
 let energyTs=Date.now();
 function save(){localStorage.setItem('fazendaFelizSave',JSON.stringify({coins,energy,xp,level,land,store:STORE,orders:ORDERS,barnCap,roads:[...ROADS],fences:[...FENCES],landSet:[...LAND],landBought,extras:EXTRAS,deco:DECO.map(d=>({id:d.id,c:d.c,x:d.x,y:d.y})),gone:[...decorGone],lay:layout(),plots,animalProducts,dailyStamp,energyTs}))}
 function regen(){let n=Math.floor((Date.now()-energyTs)/60000);if(n>0){if(energy<30)energy=Math.min(30,energy+n);energyTs+=n*60000;updateHud()}if(energy>=30)energyTs=Date.now()}
@@ -233,7 +233,7 @@ function useTractor(){if(TR){toast('O trator já está trabalhando');return}let 
  let T=OBJ.tractor,path=ready.map(p=>({x:p.x,y:p.y+6,p}));path.push({x:T.x,y:T.y,home:1});TR={x:T.x,y:T.y,path,k:0,n:0,face:1};tractorUntil=Date.now()+600000;save()}
 function stepTractor(dt){if(!TR)return;let g=TR.path[TR.k],dx=g.x-TR.x,dy=g.y-TR.y,d=Math.hypot(dx,dy),sp=g.home?260:150;
  if(Math.abs(dx)>1)TR.face=dx<0?-1:1;
- if(d<=sp*dt){TR.x=g.x;TR.y=g.y;if(g.p&&g.p.crop&&storeAdd(g.p.crop,1)){floaters.push({x:g.p.x,y:g.p.y-30,txt:'+1 '+ITEMS[g.p.crop].n,t:0});g.p.crop=null;TR.n++;gainXP(10);updateHud();if(window.SND)SND.play('coin')}
+ if(d<=sp*dt){TR.x=g.x;TR.y=g.y;if(g.p&&g.p.crop&&Date.now()>=g.p.readyAt){if(stored()>=barnCap){toast('🏚️ Celeiro cheio! O trator voltou. Venda ou entregue pedidos para continuar',4500);if(window.SND)SND.play('error');while(TR.k+1<TR.path.length&&TR.path[TR.k+1].p)TR.k++}else{storeAdd(g.p.crop,1);floaters.push({x:g.p.x,y:g.p.y-30,txt:'+1 '+ITEMS[g.p.crop].n,t:0});g.p.crop=null;TR.n++;gainXP(10);updateHud();save();if(window.SND)SND.play('coin')}}
   TR.k++;if(TR.k>=TR.path.length){toast('🚜 Trator colheu '+TR.n+' canteiro'+(TR.n>1?'s':'')+'!');TR=null;tractorUntil=0;save()}}
  else{TR.x+=dx/d*sp*dt;TR.y+=dy/d*sp*dt}}
 function drawTractorAt(x,y,w,h,face){let im=img.tractor;if(!im||!im.naturalWidth)return;ctx.save();ctx.translate(x,y);ctx.scale(face,1);ctx.translate(0,Math.sin(performance.now()/60)*1.2);ctx.drawImage(im,-w/2,-h,w,h);ctx.restore()}
@@ -494,7 +494,7 @@ exitEdit=function(){if(PEND.size){cancelPend();toast('Blocos não confirmados fo
 /* ===== v3.9: celeiro, pedidos, cortar árvores, trator pela estrada ===== */
 const ITEMS={wheat:{n:'Trigo',img:'images/wheat_3.png',v:18},corn:{n:'Milho',img:'images/corn_3.png',v:24},carrot:{n:'Cenoura',img:'images/carrot_3.png',v:30},strawberry:{n:'Morango',img:'images/strawberry_3.png',v:38},lettuce:{n:'Alface',img:'images/lettuce_3.png',v:32},
  cow:{n:'Leite',e:'🥛',v:28},chicken:{n:'Ovos',e:'🥚',v:18},sheep:{n:'Lã',e:'🧶',v:32},pig:{n:'Bacon',e:'🥓',v:40}};
-let STORE={},ORDERS=[],barnCap=60;
+let STORE={},ORDERS=[],barnCap=100;addEventListener('pagehide',()=>{try{save()}catch(e){}});document.addEventListener('visibilitychange',()=>{if(document.hidden)try{save()}catch(e){}});
 const icoI=k=>ITEMS[k].img?'<img src="'+ITEMS[k].img+'" alt="">':'<span>'+ITEMS[k].e+'</span>';
 const stored=()=>Object.values(STORE).reduce((a,b)=>a+b,0);
 function storeAdd(k,n){if(stored()+n>barnCap){toast('Celeiro cheio! Venda ou entregue pedidos para liberar espaço');if(window.SND)SND.play('error');return false}STORE[k]=(STORE[k]||0)+n;return true}
@@ -535,7 +535,7 @@ function roadRoute(fromX,fromY,toX,toY){if(!ROADS.size)return null;const C=k=>{l
   for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1]]){let n=(i+di)+','+(j+dj);if(ROADS.has(n)&&!prev.has(n)){prev.set(n,k);q.push(n)}}}
  let path=[],k=best;while(k){path.unshift(C(k));k=prev.get(k)}return path}
 useTractor=function(){if(TR){toast('O trator já está trabalhando');return}let ready=plots.filter(p=>p.crop&&Date.now()>=p.readyAt);if(!ready.length){toast('Ainda não há plantações prontas');return}
- if(stored()>=barnCap){toast('Celeiro cheio! Venda antes de colher');return}if(energy<2){toast('O trator precisa de 2 de energia. Toque no ⚡ lá em cima para ver como recarregar');return}energy-=2;updateHud();
+ let free=barnCap-stored();if(free<=0){toast('🏚️ Celeiro cheio! Venda ou entregue pedidos antes de colher',4000);openBarn();return}if(ready.length>free){toast('O celeiro só tem espaço para '+free+'. O trator vai colher esses.',3500);ready=ready.slice(0,free)}if(energy<2){toast('O trator precisa de 2 de energia. Toque no ⚡ lá em cima para ver como recarregar');return}energy-=2;updateHud();
  ready.sort((a,b)=>(a.f>b.f?1:a.f<b.f?-1:0)||(a.i-b.i)||((a.i%2?-1:1)*(a.j-b.j)));
  let T=OBJ.tractor,r=roadRoute(T.x,T.y,ready[0].x,ready[0].y)||[],go=r.map(([x,y])=>({x,y,road:1})),back=[...go].reverse();
  let path=go.concat(ready.map(p=>({x:p.x,y:p.y+6,p}))).concat(back).concat([{x:T.x,y:T.y,home:1}]);TR={x:T.x,y:T.y,path,k:0,n:0,face:1};tractorUntil=Date.now()+600000;save()};
