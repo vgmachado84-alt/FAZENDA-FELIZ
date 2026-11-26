@@ -149,7 +149,7 @@ function updateHud(){document.getElementById('coins').textContent=coins;document
 function gainXP(n){xp+=n;while(xp>=level*100){xp-=level*100;level++;coins+=50;toast('Subiu para o nível '+level+'! +50 moedas')}updateHud();save()}
 function toast(s){let e=document.getElementById('toast');e.textContent=s;e.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>e.style.opacity=0,1900)}
 function choosePlant(c){selectedCrop=c;document.querySelectorAll('.action').forEach(x=>x.classList.remove('selected'));document.getElementById('plantBtn').classList.add('selected');toast('Semente selecionada: '+({wheat:'trigo',corn:'milho',carrot:'cenoura',strawberry:'morango',lettuce:'alface'}[c]))}
-function plantAt(p,quiet){if(editMode)return;if(p.crop&&Date.now()>=p.readyAt){if(!storeAdd(p.crop,1))return;let nm=ITEMS[p.crop].n;energy=Math.min(30,energy+1);gainXP(12);p.crop=null;floaters.push({x:p.x,y:p.y-30,txt:'+1 '+nm,t:0});if(!quiet)toast(nm+' guardado no celeiro');updateHud();save();return}if(p.crop){if(!quiet)toast('A plantação ainda está crescendo');return}if(energy<1){toast('Sem energia. Aguarde ou receba o presente diário.');return}let cost={wheat:3,corn:5,carrot:6,strawberry:8,lettuce:7}[selectedCrop];if(coins<cost){toast('Moedas insuficientes');return}coins-=cost;floaters.push({x:p.x,y:p.y-30,txt:'-'+cost,t:0,neg:1});energy--;p.crop=selectedCrop;p.planted=Date.now();p.readyAt=Date.now()+({wheat:35000,corn:50000,carrot:60000,strawberry:75000,lettuce:65000}[selectedCrop]);p.stage=1;updateHud();save();if(!quiet)toast('Semente plantada! Dica: arraste o dedo pela plantação para plantar vários.');}
+function plantAt(p,quiet){if(editMode)return;if(p.crop&&Date.now()>=p.readyAt){if(!storeAdd(p.crop,1))return;let nm=ITEMS[p.crop].n;energy=Math.min(30,energy+1);gainXP(12);p.crop=null;floaters.push({x:p.x,y:p.y-30,txt:'+1 '+nm,t:0});if(!quiet)toast(nm+' guardado no celeiro');updateHud();save();return}if(p.crop){if(!quiet)toast('A plantação ainda está crescendo');return}if(energy<1){toast('Sem energia ⚡ Toque no ⚡ lá em cima para recarregar');return}let cost={wheat:3,corn:5,carrot:6,strawberry:8,lettuce:7}[selectedCrop];if(coins<cost){toast('Moedas insuficientes');return}coins-=cost;floaters.push({x:p.x,y:p.y-30,txt:'-'+cost,t:0,neg:1});energy--;p.crop=selectedCrop;p.planted=Date.now();p.readyAt=Date.now()+({wheat:35000,corn:50000,carrot:60000,strawberry:75000,lettuce:65000}[selectedCrop]);p.stage=1;updateHud();save();if(!quiet)toast('Semente plantada! Dica: arraste o dedo pela plantação para plantar vários.');}
 let floaters=[];
 const PROD={cow:{n:'Leite',e:'🥛',t:180,r:28,nome:'A vaca'},sheep:{n:'Lã',e:'🧶',t:240,r:32,nome:'A ovelha'},chicken:{n:'Ovos',e:'🥚',t:90,r:18,nome:'A galinha'},pig:{n:'Bacon',e:'🥓',t:300,r:40,nome:'O porco'}};
 function prodReady(k){let v=animalProducts[k]||0;return v<1e12||Date.now()>=v}
@@ -228,7 +228,7 @@ function zoomBy(f){let cx=camX+viewW/scale/2,cy=camY+viewH/scale/2;scale=Math.ma
 function zoomReset(){resize()}
 canvas.addEventListener('pointerup',e=>{let p=pointers.get(e.pointerId);if(pointers.size===1&&drag&&!drag.moved){let w=toWorld(e.clientX,e.clientY);if(!hit(w.x,w.y)){} }pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;if(pointers.size===0)drag=null});canvas.addEventListener('pointercancel',e=>{pointers.delete(e.pointerId);drag=null;pinch=null});
 let TR=null;const CROPV={wheat:18,corn:24,carrot:30,strawberry:38,lettuce:32};
-function useTractor(){if(TR){toast('O trator já está trabalhando');return}let ready=plots.filter(p=>p.crop&&Date.now()>=p.readyAt);if(!ready.length){toast('Ainda não há plantações prontas');return}if(energy<2){toast('O trator precisa de 2 energias');return}energy-=2;updateHud();
+function useTractor(){if(TR){toast('O trator já está trabalhando');return}let ready=plots.filter(p=>p.crop&&Date.now()>=p.readyAt);if(!ready.length){toast('Ainda não há plantações prontas');return}if(energy<2){toast('O trator precisa de 2 de energia. Toque no ⚡ lá em cima para ver como recarregar');return}energy-=2;updateHud();
  ready.sort((a,b)=>(a.f>b.f?1:a.f<b.f?-1:0)||(a.i-b.i)||((a.i%2?-1:1)*(a.j-b.j)));
  let T=OBJ.tractor,path=ready.map(p=>({x:p.x,y:p.y+6,p}));path.push({x:T.x,y:T.y,home:1});TR={x:T.x,y:T.y,path,k:0,n:0,face:1};tractorUntil=Date.now()+600000;save()}
 function stepTractor(dt){if(!TR)return;let g=TR.path[TR.k],dx=g.x-TR.x,dy=g.y-TR.y,d=Math.hypot(dx,dy),sp=g.home?260:150;
@@ -526,7 +526,7 @@ function extraHit(x,y){if(editMode)return false;
  if(inObj(OBJ.barn,x,y)||inObj(OBJ.silo,x,y)){openBarn();return true}
  if(inObj(OBJ.market,x,y)){openOrders();return true}
  for(const d of [...DECO].sort((a,b)=>b.y-a.y))if(inObj(d,x,y)){popAt(d.x,d.y,d.nome,[['💰 Vender','+'+Math.floor((d.p||20)/2),()=>sellDeco(d)],['✋ Mudar de lugar','',()=>enterEdit('m')]]);return true}
- let t=decorIdx(x,y-20);if(!t.length)t=decorIdx(x,y);if(t.length){let n=t[0],d=DECOR[n];popAt(d.x,d.y,'Árvore',[['🪓 Cortar','15 🪙 · +5 ✨',()=>cutTree(n)]]);return true}
+ let t=treeAt(x,y);if(t>=0){let d=DECOR[t];popAt(d.x,d.y,d.k==='flower_bush'?'Pedra e flores':'Árvore',[['🪓 Remover','15 🪙 · +5 ✨',()=>cutTree(t)],['✋ Mudar de lugar','grátis',()=>moveTree(t)]]);return true}
  return false}
 /* trator: vai e volta pela estrada quando ela existe */
 function roadRoute(fromX,fromY,toX,toY){if(!ROADS.size)return null;const C=k=>{let[i,j]=k.split(',').map(Number);return[(i-j)*HX,(i+j)*HY+HY]};
@@ -535,7 +535,7 @@ function roadRoute(fromX,fromY,toX,toY){if(!ROADS.size)return null;const C=k=>{l
   for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1]]){let n=(i+di)+','+(j+dj);if(ROADS.has(n)&&!prev.has(n)){prev.set(n,k);q.push(n)}}}
  let path=[],k=best;while(k){path.unshift(C(k));k=prev.get(k)}return path}
 useTractor=function(){if(TR){toast('O trator já está trabalhando');return}let ready=plots.filter(p=>p.crop&&Date.now()>=p.readyAt);if(!ready.length){toast('Ainda não há plantações prontas');return}
- if(stored()>=barnCap){toast('Celeiro cheio! Venda antes de colher');return}if(energy<2){toast('O trator precisa de 2 energias');return}energy-=2;updateHud();
+ if(stored()>=barnCap){toast('Celeiro cheio! Venda antes de colher');return}if(energy<2){toast('O trator precisa de 2 de energia. Toque no ⚡ lá em cima para ver como recarregar');return}energy-=2;updateHud();
  ready.sort((a,b)=>(a.f>b.f?1:a.f<b.f?-1:0)||(a.i-b.i)||((a.i%2?-1:1)*(a.j-b.j)));
  let T=OBJ.tractor,r=roadRoute(T.x,T.y,ready[0].x,ready[0].y)||[],go=r.map(([x,y])=>({x,y,road:1})),back=[...go].reverse();
  let path=go.concat(ready.map(p=>({x:p.x,y:p.y+6,p}))).concat(back).concat([{x:T.x,y:T.y,home:1}]);TR={x:T.x,y:T.y,path,k:0,n:0,face:1};tractorUntil=Date.now()+600000;save()};
@@ -555,6 +555,17 @@ zoomReset=function(){window._cc=null;resize()};
  const H=document.getElementById('hud');if(H){H.insertAdjacentHTML('beforeend','<button class="rb" id="hBarn" aria-label="Celeiro" onclick="openBarn()">🏚️<small>Celeiro</small><i class="bd"></i></button><button class="rb" id="hOrd" aria-label="Pedidos" onclick="openOrders()">📦<small>Pedidos</small><i class="bd"></i></button>')}
  setInterval(()=>{fillOrders();let b=document.getElementById('hOrd'),n=ORDERS.filter(canFill).length;if(b){b.classList.toggle('has',n>0);b.querySelector('.bd').textContent=n}let c=document.getElementById('hBarn');if(c){let f=stored()>=barnCap;c.classList.toggle('has',f);c.querySelector('.bd').textContent='!'}},1000)})();
 
+
+function treeAt(x,y){let best=-1,by=-1e9;DECOR.forEach((d,n)=>{if(decorGone.has(n))return;let[w,h]=DSZ[d.k];w*=d.s;h*=d.s;if(Math.abs(x-d.x)<w*.48&&y<d.y+8&&y>d.y-h&&d.y>by){best=n;by=d.y}});return best}
+const TREE2DECO={pine_tree:'pine',apple_tree:'apple',willow_tree:'willow',flower_bush:'flower_bush'};
+function moveTree(n){let d=DECOR[n];if(!landAt(d.x,d.y)){toast('Compre este terreno para mudar as árvores daqui');return}
+ let o=makeDeco(TREE2DECO[d.k],d.x,d.y);if(!o)return;o.p=0;decorGone.add(n);DECO.push(o);save();enterEdit('m');toast('Arraste a árvore para o novo lugar e toque em Concluir',3500)}
+function openEnergy(){regen();let s=60-Math.floor((Date.now()-energyTs)/1000)%60;
+ openPanel('⚡ Energia','<p>A energia é o "cansaço" do fazendeiro:</p><div class="srow"><span>🌱</span><b>Plantar um canteiro</b><small>−1 ⚡</small></div><div class="srow"><span>🚜</span><b>Usar o trator</b><small>−2 ⚡</small></div><div class="srow"><span>🌾</span><b>Colher à mão</b><small>+1 ⚡</small></div>'+
+ '<p class="sub">Recarrega sozinha 1 ponto por minuto, até 30, mesmo com o jogo fechado.'+(energy<30?' Próximo ponto em '+s+' s.':' Está cheia!')+'</p>'+
+ '<div class="ob"><button class="panelbtn" onclick="buyEnergy(10,40)">+10 ⚡ · 40 🪙</button><button class="panelbtn" onclick="buyEnergy(30,100)">Encher · 100 🪙</button></div>')}
+function buyEnergy(n,c){if(energy>=30){toast('A energia já está cheia');return}if(coins<c){toast('Faltam '+(c-coins)+' moedas');return}coins-=c;energy=Math.min(30,energy+n);updateHud();save();closePanels();toast('Energia: '+energy+' ⚡');if(window.SND)SND.play('coin')}
+setTimeout(()=>{let e=document.getElementById('energy');if(e){let st=e.closest('.stat');st.style.cursor='pointer';st.setAttribute('role','button');st.setAttribute('aria-label','Energia');st.onclick=openEnergy}},300);
 function openDecoShop(){openPanel('Decoração e construção','<div class="shopgrid">'+DECOCAT.map(d=>'<div class="shopitem"><img src="images/'+d.k+'.png"><strong>'+d.n+'</strong><span>'+d.p+' moedas</span><br><button onclick="buyDeco(\''+d.c+'\')">Comprar</button></div>').join('')+
  '<div class="shopitem"><img src="images/empty_plot.png"><strong>Plantação extra</strong><span>800 moedas · nível 3</span><br><button onclick="buyField()">Comprar</button></div>'+
  '<div class="shopitem"><img src="images/gate.png"><strong>Cerca</strong><span>8 moedas por pedaço</span><br><button onclick="closePanels();setRoadMode(true,\'f\')">Desenhar cerca</button></div>'+
